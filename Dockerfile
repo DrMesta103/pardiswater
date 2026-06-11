@@ -11,7 +11,7 @@ COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
 # نصب پکیج‌ها و جنریت کردن کلاینت Prisma
-RUN npm ci
+RUN npm install
 RUN npx prisma generate
 
 # مرحله ۲: بیلد پروژه
