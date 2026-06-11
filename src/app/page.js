@@ -96,56 +96,13 @@ export default function EntryPage() {
             className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gray-50/50 backdrop-blur-md"
           >
             <motion.div
-              initial={{ scale: 0.5, opacity: 0, y: 20 }}
+              initial={{ scale: 0.5, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-              className="flex flex-col items-center"
+              className="flex items-center justify-center w-36 h-36"
             >
-              <motion.div 
-                className="w-24 h-24 rounded-3xl shadow-sm border border-gray-100 mb-6 overflow-hidden flex items-center justify-center bg-white"
-              >
-                <img src="/icons/icon-512x512.png" alt="پردیس رایانه" className="w-full h-full object-cover" />
-              </motion.div>
-              
-              <motion.h1 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 }}
-                className="text-2xl font-black text-gray-800 tracking-tight"
-              >
-                انبارگردانی هوشمند
-              </motion.h1>
-              
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.8 }}
-                className="text-sm text-gray-500 mt-2 font-medium"
-              >
-                مدیریت حرفه‌ای انبار و قفسه‌ها
-              </motion.p>
+              <img src="/icons/icon-512x512.png" alt="انبارداری" className="w-full h-full object-contain drop-shadow-xl" />
             </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1, delay: 1 }}
-              className="absolute bottom-12 flex flex-col items-center"
-            >
-              <div className="flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-opacity gap-1">
-                <span className="text-[11px] text-gray-800 font-black tracking-[0.3em] uppercase font-sans">
-                  H U K A
-                </span>
-                <span className="text-[9px] text-gray-500 font-medium tracking-widest">طراحی توسط هوکا</span>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: "120px" }}
-              transition={{ duration: 1.5, delay: 0.5, ease: "easeInOut" }}
-              className="absolute bottom-6 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
-            />
           </motion.div>
         ) : showInstall ? (
           <motion.div 
@@ -156,8 +113,8 @@ export default function EntryPage() {
             transition={{ duration: 0.6 }}
             className="w-full h-full flex flex-col justify-center items-center px-8 z-10 relative max-w-md mx-auto"
           >
-            <div className="w-28 h-28 rounded-3xl shadow-sm border border-gray-100 mb-8 overflow-hidden flex items-center justify-center bg-white p-2">
-              <img src="/icons/icon-512x512.png" alt="پردیس رایانه" className="w-full h-full object-cover" />
+            <div className="w-32 h-32 mb-6 flex items-center justify-center">
+              <img src="/icons/icon-512x512.png" alt="انبارداری" className="w-full h-full object-contain drop-shadow-md" />
             </div>
             
             <h2 className="text-2xl font-black text-gray-800 tracking-tight mb-3 text-center">
@@ -235,7 +192,7 @@ export default function EntryPage() {
               className="flex flex-col items-center justify-center flex-1 pt-10"
             >
               <div className="w-20 h-20 rounded-3xl shadow-sm border border-gray-100 mb-6 overflow-hidden flex items-center justify-center bg-white">
-                <img src="/icons/icon-512x512.png" alt="پردیس رایانه" className="w-full h-full object-cover" />
+                <img src="/icons/icon-512x512.png" alt="انبارداری" className="w-full h-full object-cover" />
               </div>
               <h2 className="text-2xl font-black text-gray-800 tracking-tight mb-2">
                 خوش آمدید

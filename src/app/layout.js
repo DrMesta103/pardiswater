@@ -9,8 +9,8 @@ export const viewport = {
 }
 
 export const metadata = {
-  title: 'پردیس رایانه - انبارگردانی',
-  description: 'اپلیکیشن انبارگردانی پردیس',
+  title: 'سیستم انبارداری',
+  description: 'اپلیکیشن مدیریت انبار',
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

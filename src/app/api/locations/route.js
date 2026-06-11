@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const locations = await prisma.location.findMany({
+      include: { _count: { select: { countings: true } } },
       orderBy: [{ floor: 'asc' }, { region: 'asc' }, { sector: 'asc' }, { row: 'asc' }]
     });
     return NextResponse.json(locations);

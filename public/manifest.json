@@ -1,7 +1,7 @@
 {
-  "name": "پردیس رایانه - سیستم انبارگردانی",
-  "short_name": "انبارگردانی",
-  "description": "سیستم جامع مدیریت قفسه‌ها و انبارگردانی",
+  "name": "سیستم انبارداری",
+  "short_name": "انبارداری",
+  "description": "سیستم جامع مدیریت قفسه‌ها و انبارداری",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

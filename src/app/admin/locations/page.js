@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import dynamic from 'next/dynamic';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ScanLine, Plus, Search, Trash2, Edit2, Layers, MapPin, X, AlertCircle, XCircle, Box } from 'lucide-react';
 const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
 
 export default function AdminLocations() {
@@ -9,9 +11,18 @@ export default function AdminLocations() {
   const [newCode, setNewCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
-
   const [camError, setCamError] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  
+  const [editingId, setEditingId] = useState(null);
+  const [editCode, setEditCode] = useState('');
+
+  const [toast, setToast] = useState({ show: false, message: '', isError: false });
+
+  const showToast = (message, isError = false) => {
+    setToast({ show: true, message, isError });
+    setTimeout(() => setToast({ show: false, message: '', isError: false }), 3000);
+  };
 
   useEffect(() => {
     fetchLocations();
@@ -28,125 +39,173 @@ export default function AdminLocations() {
     }
   };
 
-  const handleAddLocation = async (codeValue) => {
-    const targetCode = codeValue || newCode;
+  const handleAddOrEdit = async (codeValue) => {
+    const targetCode = editingId ? editCode : (codeValue || newCode);
     if (!targetCode) return;
     
     setLoading(true);
     try {
-      const res = await fetch('/api/locations', {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `/api/locations/${editingId}` : '/api/locations';
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: targetCode })
       });
       
       const data = await res.json();
       if (res.ok) {
-        alert('قفسه با موفقیت ثبت شد!');
+        showToast(editingId ? 'قفسه با موفقیت ویرایش شد' : 'قفسه با موفقیت ثبت شد!');
         setNewCode('');
+        setEditingId(null);
+        setEditCode('');
         fetchLocations();
       } else {
-        alert(data.error || 'خطا در ثبت قفسه');
+        showToast(data.error || 'خطا در ثبت قفسه', true);
       }
     } catch (e) {
-      alert('خطای شبکه');
+      showToast('خطای شبکه', true);
     } finally {
       setLoading(false);
       setCameraEnabled(false);
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm('آیا از حذف این قفسه اطمینان دارید؟')) return;
+    try {
+      const res = await fetch(`/api/locations/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('قفسه حذف شد');
+        fetchLocations();
+      } else {
+        showToast(data.error || 'خطا در حذف', true);
+      }
+    } catch (e) {
+      showToast('خطای شبکه', true);
+    }
+  };
+
   const handleScan = (detectedCodes) => {
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedValue = detectedCodes[0].rawValue;
-      handleAddLocation(scannedValue);
+      handleAddOrEdit(scannedValue);
     }
   };
 
   const handleError = (error) => {
-    console.error(error);
     const msg = error?.message || error?.name || '';
-    if (msg.includes('Requested device not found') || msg.includes('NotFoundError') || msg.includes('device not found')) {
-      setCamError('هیچ دوربینی روی این دستگاه یافت نشد. لطفاً از لپ‌تاپ یا موبایل استفاده کنید.');
+    if (msg.includes('Requested device not found')) {
+      setCamError('دوربینی یافت نشد.');
     } else {
-      setCamError(msg || 'خطا در دسترسی به دوربین. آیا از HTTPS یا localhost استفاده میکنید؟');
+      setCamError(msg || 'خطا در دسترسی به دوربین.');
     }
   };
 
-  // استخراج طبقات یکتا برای ساخت دکمه‌های فیلتر
   const floors = [...new Set(locations.map(loc => loc.floor))].sort();
-
-  // اعمال فیلتر روی لیست قفسه‌ها
   const filteredLocations = activeFilter === 'all' 
     ? locations 
     : locations.filter(loc => loc.floor === activeFilter);
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-20">
-      <Header title="مدیریت قفسه ها (ادمین)" showBack={true} />
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
+      <Header title="مدیریت قفسه‌ها" showBack={true} />
       
-      <div className="p-4 flex flex-col gap-6 items-center">
+      <div className="flex-1 p-5 flex flex-col gap-6 max-w-md mx-auto w-full mt-2">
         
-        <div className="w-full bg-white p-4 rounded shadow border border-gray-200">
-          <h2 className="font-bold mb-2">ثبت قفسه جدید</h2>
-          <p className="text-xs text-gray-500 mb-4">
-            فرمت استاندارد شامل حروف و اعداد است. 
-            مثال: C2F2 (طبقه C، منطقه 2، قطاع F، ردیف 2)
+        {/* Header Title */}
+        <div className="flex flex-col">
+          <h2 className="text-xl font-black text-gray-800 tracking-tight">تنظیمات قفسه‌ها</h2>
+          <p className="text-xs text-gray-400 font-medium mt-1">
+            ثبت، ویرایش و مدیریت قفسه‌های انبار
           </p>
+        </div>
 
-          <div className="flex flex-col gap-3">
+        {/* Action Box */}
+        <div className="w-full bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
+          
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm font-bold text-gray-700">{editingId ? 'ویرایش قفسه' : 'ثبت قفسه جدید'}</span>
+            {editingId && (
+              <button onClick={() => { setEditingId(null); setEditCode(''); }} className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg">
+                لغو ویرایش
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
             <input 
               type="text" 
               dir="ltr"
-              value={newCode}
-              onChange={(e) => setNewCode(e.target.value)}
+              value={editingId ? editCode : newCode}
+              onChange={(e) => editingId ? setEditCode(e.target.value) : setNewCode(e.target.value)}
               placeholder="مثال: C2F2"
-              className="w-full border p-2 rounded text-center uppercase font-bold"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-center uppercase font-black text-gray-800 tracking-widest focus:outline-none focus:border-indigo-500 focus:bg-white transition-colors placeholder-gray-300"
             />
-            <button 
-              onClick={() => handleAddLocation(newCode)}
+            <motion.button 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleAddOrEdit()}
               disabled={loading}
-              className="bg-purple-600 text-white font-bold py-2 rounded"
+              className="w-14 bg-gray-900 text-white rounded-[16px] flex items-center justify-center transition-opacity disabled:opacity-50 shrink-0"
             >
-              ثبت دستی
-            </button>
+              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (editingId ? <Edit2 size={18} strokeWidth={2.5}/> : <Plus size={20} strokeWidth={3} />)}
+            </motion.button>
           </div>
 
-          <div className="mt-4 border-t pt-4">
-            {cameraEnabled ? (
-              <div className="w-full aspect-video relative flex flex-col items-center justify-center bg-gray-100 rounded">
-                {camError ? (
-                  <div className="text-red-500 text-xs p-4 text-center">{camError}</div>
-                ) : (
-                  <Scanner onScan={handleScan} onError={handleError} />
-                )}
-                <button 
-                  onClick={() => { setCameraEnabled(false); setCamError(''); }}
-                  className="absolute bottom-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded z-10"
+          <div className="relative overflow-hidden rounded-[16px]">
+            <AnimatePresence>
+              {cameraEnabled && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="w-full aspect-video relative flex flex-col items-center justify-center bg-black overflow-hidden"
                 >
-                  بستن دوربین
-                </button>
-              </div>
-            ) : (
-              <button 
+                  {camError ? (
+                    <div className="text-red-400 text-xs p-4 text-center font-medium">{camError}</div>
+                  ) : (
+                    <div className="w-full h-full [&>div]:!object-cover [&>div>video]:!object-cover">
+                      <Scanner onScan={handleScan} onError={handleError} />
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => { setCameraEnabled(false); setCamError(''); }}
+                    className="absolute top-2 right-2 bg-white/20 backdrop-blur-md p-1.5 rounded-full text-white pointer-events-auto"
+                  >
+                    <X size={16} strokeWidth={3} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {!cameraEnabled && !editingId && (
+              <motion.button 
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setCameraEnabled(true)}
-                className="w-full bg-blue-500 text-white font-bold py-2 rounded flex justify-center items-center gap-2"
+                className="w-full py-3.5 bg-indigo-50 text-indigo-600 text-sm font-extrabold rounded-[16px] transition-colors flex items-center justify-center gap-2"
               >
+                <ScanLine size={18} strokeWidth={2.5} />
                 اسکن بارکد قفسه
-              </button>
+              </motion.button>
             )}
           </div>
         </div>
 
-        <div className="w-full bg-white p-4 rounded shadow border border-gray-200">
-          <h2 className="font-bold mb-4">قفسه های ثبت شده ({filteredLocations.length})</h2>
+        {/* List Section */}
+        <div className="flex flex-col gap-4 mt-2">
           
-          {/* فیلترهای تگ (اسکرول افقی) */}
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-gray-800 text-sm">لیست قفسه‌ها <span className="text-gray-400 font-medium text-xs">({filteredLocations.length})</span></h3>
+          </div>
+
+          {/* Tag Filters */}
           {floors.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <button 
                 onClick={() => setActiveFilter('all')}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${activeFilter === 'all' ? 'bg-purple-600 text-white border-purple-600' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
+                className={`px-4 py-2 rounded-[12px] text-xs font-bold whitespace-nowrap transition-all border ${activeFilter === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
               >
                 همه طبقات
               </button>
@@ -154,7 +213,7 @@ export default function AdminLocations() {
                 <button 
                   key={floor}
                   onClick={() => setActiveFilter(floor)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${activeFilter === floor ? 'bg-purple-600 text-white border-purple-600' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
+                  className={`px-4 py-2 rounded-[12px] text-xs font-bold whitespace-nowrap transition-all border ${activeFilter === floor ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
                 >
                   طبقه {floor}
                 </button>
@@ -162,18 +221,83 @@ export default function AdminLocations() {
             </div>
           )}
 
-          <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
-            {filteredLocations.map((loc) => (
-              <div key={loc.id} className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100 text-sm">
-                <span className="font-bold text-lg text-purple-700">{loc.code}</span>
-                <span className="text-gray-500 text-xs">طبقه {loc.floor} | منطقه {loc.region} | قطاع {loc.sector} | ردیف {loc.row}</span>
+          {/* Cards */}
+          <div className="flex flex-col gap-3">
+            {filteredLocations.map((loc) => {
+              const hasData = loc._count?.countings > 0;
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={loc.id} 
+                  className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-50 rounded-[14px] flex items-center justify-center shrink-0">
+                      <Layers className="text-gray-400" size={20} strokeWidth={2} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-black text-lg text-gray-800 tracking-wide uppercase">{loc.code}</span>
+                      <span className="text-[10px] text-gray-400 font-bold mt-0.5">
+                        طبقه {loc.floor} • منطقه {loc.region} • قطاع {loc.sector}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {!hasData ? (
+                      <>
+                        <button 
+                          onClick={() => { setEditingId(loc.id); setEditCode(loc.code); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                        >
+                          <Edit2 size={16} strokeWidth={2.5} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(loc.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 size={16} strokeWidth={2.5} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="px-3 py-1 bg-gray-50 rounded-full flex items-center gap-1.5 border border-gray-100">
+                        <Box size={12} className="text-gray-400" />
+                        <span className="text-[10px] font-bold text-gray-500">{loc._count.countings} کالا</span>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+            
+            {filteredLocations.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                  <MapPin className="text-gray-300" size={24} />
+                </div>
+                <span className="text-sm font-bold text-gray-500">هیچ قفسه‌ای یافت نشد</span>
+                <span className="text-xs text-gray-400 mt-1">با فرم بالا یک قفسه جدید ثبت کنید</span>
               </div>
-            ))}
-            {filteredLocations.length === 0 && <span className="text-center text-sm text-gray-400 py-4">موردی یافت نشد.</span>}
+            )}
           </div>
         </div>
-
       </div>
+
+      {/* Minimal Toast Notification */}
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl shadow-xl backdrop-blur-3xl border text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 ${toast.isError ? 'bg-red-50/90 border-red-100 text-red-600' : 'bg-white/90 border-gray-100 text-gray-800'}`}
+          >
+            {toast.isError ? <XCircle size={14} /> : <AlertCircle size={14} />}
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
