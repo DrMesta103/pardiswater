@@ -7,11 +7,12 @@ RUN apt-get update && apt-get install -y openssl libc6
 WORKDIR /app
 
 # کپی فایل‌های نصب پکیج
-COPY package.json package-lock.json* ./
+COPY package.json ./
 COPY prisma ./prisma/
 
-# نصب پکیج‌ها (با استفاده از لاک فایل برای سرعت بیشتر)
-RUN npm install
+# استفاده از میرور قدرتمند برای دور زدن تحریم و کندی شبکه و دریافت باینری‌های صحیح لینوکس
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm install
 RUN npx prisma generate
 
 # مرحله ۲: بیلد پروژه
