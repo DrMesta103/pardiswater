@@ -1,10 +1,9 @@
-# پایه تصویر Node.js
-FROM node:18-alpine AS base
+# پایه تصویر Node.js (استفاده از نسخه slim به جای alpine برای جلوگیری از ارورهای شبکه و تحریم در سرورهای ایرانی)
+FROM node:18-slim AS base
 
 # مرحله ۱: نصب نیازمندی‌ها
 FROM base AS deps
-# نصب نیازمندی‌های سیستم‌عامل برای Prisma و سایر ابزارها
-RUN apk add --no-cache libc6-compat openssl
+RUN apt-get update && apt-get install -y openssl libc6
 WORKDIR /app
 
 # کپی فایل‌های نصب پکیج
@@ -31,13 +30,13 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-# نصب openssl برای ارتباط Prisma با دیتابیس در زمان اجرا
-RUN apk add --no-cache openssl
+# نصب openssl برای اجرای Prisma در محیط داکر
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# ساخت کاربر غیر-روت برای افزایش امنیت در سرور
+# ساخت کاربر غیر-روت برای امنیت
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
