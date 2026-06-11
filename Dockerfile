@@ -7,12 +7,12 @@ FROM base AS deps
 WORKDIR /app
 
 # کپی فایل‌های نصب پکیج
-COPY package.json ./
+COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-# استفاده از میرور قدرتمند برای دور زدن تحریم و کندی شبکه و دریافت باینری‌های صحیح لینوکس
+# استفاده از میرور قدرتمند و نصب با استفاده از لاک‌فایل برای سرعت بالا و مصرف رم پایین
 RUN npm config set registry https://registry.npmmirror.com/ && \
-    npm install
+    npm ci
 RUN npx prisma generate
 
 # مرحله ۲: بیلد پروژه
@@ -23,6 +23,9 @@ COPY . .
 
 # غیرفعال کردن تله‌متری Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# محدود کردن مصرف رم Node.js برای جلوگیری از کرش کردن سرور (OOM Killer) در سرورهای ضعیف
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 # بیلد پروژه
 RUN npm run build
