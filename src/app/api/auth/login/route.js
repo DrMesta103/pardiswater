@@ -26,7 +26,7 @@ export async function POST(req) {
 
     const token = signToken({ id: user.id, username: user.username, name: user.name, orgId: user.orgId, role: user.role });
 
-    return Response.json({ message: 'با موفقیت وارد شدید', token, user: { id: user.id, name: user.name, orgId: user.orgId, role: user.role } });
+    return Response.json({ message: 'با موفقیت وارد شدید', token, user: { id: user.id, name: user.name, orgId: user.orgId, role: user.role, avatarUrl: user.avatarUrl } });
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'خطای سرور رخ داد.' }, { status: 500 });
