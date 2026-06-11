@@ -1,9 +1,9 @@
 # پایه تصویر Node.js (استفاده از نسخه ۲۰ به دلیل نیازمندی‌های Tailwind v4 و WebAuthn)
 FROM node:20-slim AS base
+RUN apt-get update && apt-get install -y openssl libc6 && rm -rf /var/lib/apt/lists/*
 
 # مرحله ۱: نصب نیازمندی‌ها
 FROM base AS deps
-RUN apt-get update && apt-get install -y openssl libc6
 WORKDIR /app
 
 # کپی فایل‌های نصب پکیج
@@ -30,9 +30,6 @@ RUN npm run build
 # مرحله ۳: اجرای پروژه در محیط پروداکشن
 FROM base AS runner
 WORKDIR /app
-
-# نصب openssl برای اجرای Prisma در محیط داکر
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
