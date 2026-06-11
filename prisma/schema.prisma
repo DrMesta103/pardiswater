@@ -1,0 +1,54 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  username  String     @unique
+  password  String
+  name      String?
+  mobile    String?
+  role      Role       @default(USER)
+  orgId     Int?       
+  countings Counting[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Location {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique
+  floor     String   
+  region    Int      
+  sector    String   
+  row       Int      
+  countings Counting[]
+  createdAt DateTime   @default(now())
+}
+
+model Counting {
+  id           Int       @id @default(autoincrement())
+  product_id   Int
+  product_name String
+  warehouse    Int
+  
+  shelfCode    String?  
+  location     Location? @relation(fields: [shelfCode], references: [code])
+  
+  old_count    Int
+  new_count    Int
+  user_id      Int
+  user         User      @relation(fields: [user_id], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

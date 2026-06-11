@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "IRANSans";
+  src: url("/fonts/iran.woff2") format("woff2"),
+       url("/fonts/iran.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-iran: "IRANSans", sans-serif;
+}
+
+body {
+  direction: rtl;
+  background-color: #f8fafc; /* Lighter modern gray */
+  font-family: var(--font-iran);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for horizontal scroll areas but keep functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
