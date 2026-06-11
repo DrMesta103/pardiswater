@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Fingerprint } from 'lucide-react';
+import { Fingerprint, Download, Share } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,21 +10,45 @@ export default function EntryPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [showInstall, setShowInstall] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
   
   const router = useRouter();
 
   useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    const ua = window.navigator.userAgent;
+    const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    setIsIOS(isIOSDevice);
+
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
       await new Promise(resolve => setTimeout(resolve, 2500));
-      if (token) {
-        router.push('/dashboard');
-      } else {
+      
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+      if (!isStandalone && process.env.NODE_ENV !== 'development') {
         setShowSplash(false);
+        setShowInstall(true);
+      } else {
+        if (token) {
+          router.push('/dashboard');
+        } else {
+          setShowSplash(false);
+          setShowInstall(false);
+        }
       }
     };
     checkAuth();
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, [router]);
 
   const handleLogin = async (e) => {
@@ -122,6 +146,75 @@ export default function EntryPage() {
               transition={{ duration: 1.5, delay: 0.5, ease: "easeInOut" }}
               className="absolute bottom-6 h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
             />
+          </motion.div>
+        ) : showInstall ? (
+          <motion.div 
+            key="install"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.6 }}
+            className="w-full h-full flex flex-col justify-center items-center px-8 z-10 relative max-w-md mx-auto"
+          >
+            <div className="w-28 h-28 rounded-3xl shadow-sm border border-gray-100 mb-8 overflow-hidden flex items-center justify-center bg-white p-2">
+              <img src="/icons/icon-512x512.png" alt="پردیس رایانه" className="w-full h-full object-cover" />
+            </div>
+            
+            <h2 className="text-2xl font-black text-gray-800 tracking-tight mb-3 text-center">
+              تجربه بهتر در اپلیکیشن
+            </h2>
+            
+            <p className="text-sm text-gray-500 font-medium text-center leading-relaxed mb-10">
+              برای تجربه سریع‌تر، دسترسی آفلاین و استفاده از <b className="text-gray-700">ورود امن با اثر انگشت</b>، پیشنهاد می‌کنیم اپلیکیشن انبارگردانی را روی دستگاه خود نصب کنید.
+            </p>
+            
+            <div className="w-full flex flex-col gap-3">
+              {isIOS ? (
+                <div className="bg-gray-100/50 border border-gray-200 rounded-[24px] p-5 mb-2">
+                  <p className="text-xs font-bold text-gray-700 text-center mb-3">راهنمای نصب در آیفون (iOS):</p>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-500 font-medium justify-center">
+                    <span>۱. لمس <Share className="inline w-4 h-4 mx-0.5 text-blue-500"/></span>
+                    <span>۲. انتخاب <b className="text-gray-800 border bg-white px-1.5 py-0.5 rounded-md shadow-sm">Add to Home Screen</b></span>
+                  </div>
+                </div>
+              ) : (
+                <motion.button 
+                  whileTap={{ scale: 0.98 }}
+                  onClick={async () => {
+                    if (deferredPrompt) {
+                      deferredPrompt.prompt();
+                      const { outcome } = await deferredPrompt.userChoice;
+                      if (outcome === 'accepted') {
+                        setDeferredPrompt(null);
+                      }
+                    } else {
+                      alert('مرورگر شما از نصب مستقیم پشتیبانی نمی‌کند. از منوی مرورگر Add to Home screen را انتخاب کنید.');
+                    }
+                  }}
+                  className="w-full py-4 bg-gray-900 text-white text-sm font-extrabold rounded-[20px] transition-all flex items-center justify-center shadow-sm gap-2"
+                >
+                  <Download size={18} strokeWidth={2.5} />
+                  نصب مستقیم اپلیکیشن
+                </motion.button>
+              )}
+              
+              <button 
+                onClick={() => {
+                  setShowInstall(false);
+                  if (localStorage.getItem('token')) router.push('/dashboard');
+                }}
+                className="w-full py-4 text-gray-400 hover:text-gray-600 text-xs font-bold transition-colors"
+              >
+                فعلاً نه، ادامه در مرورگر
+              </button>
+            </div>
+            
+            <div className="absolute bottom-12 flex flex-col items-center justify-center opacity-40">
+              <span className="text-[11px] text-gray-800 font-black tracking-[0.3em] uppercase font-sans">
+                H U K A
+              </span>
+              <span className="text-[9px] text-gray-500 font-medium tracking-widest">طراحی توسط هوکا</span>
+            </div>
           </motion.div>
         ) : (
           <motion.div 
