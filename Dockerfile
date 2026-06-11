@@ -1,5 +1,5 @@
-# پایه تصویر Node.js (استفاده از نسخه slim به جای alpine برای جلوگیری از ارورهای شبکه و تحریم در سرورهای ایرانی)
-FROM node:18-slim AS base
+# پایه تصویر Node.js (استفاده از نسخه ۲۰ به دلیل نیازمندی‌های Tailwind v4 و WebAuthn)
+FROM node:20-slim AS base
 
 # مرحله ۱: نصب نیازمندی‌ها
 FROM base AS deps
