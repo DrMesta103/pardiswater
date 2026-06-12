@@ -16,6 +16,14 @@ export async function GET() {
     if (settingsMap['correction_roles'] === undefined) {
       settingsMap['correction_roles'] = ['ADMIN', 'SUPERVISOR'];
     }
+    if (settingsMap['warehouses'] === undefined) {
+      settingsMap['warehouses'] = [
+        { id: '11', name: 'انبار مرکزی' },
+        { id: '13', name: 'انبار فروشگاه' },
+        { id: '14', name: 'انبار کارگاه شارژ' },
+        { id: '15', name: 'انبار کارگاه تعمیرات' }
+      ];
+    }
     
     return NextResponse.json(settingsMap);
   } catch (error) {

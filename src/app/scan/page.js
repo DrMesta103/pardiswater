@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import dynamic from 'next/dynamic';
@@ -15,7 +15,21 @@ export default function ScanPage() {
   const [camError, setCamError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lockError, setLockError] = useState('');
+  const [warehouses, setWarehouses] = useState([]);
   const router = useRouter();
+  
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.warehouses) {
+          setWarehouses(data.warehouses);
+          if (data.warehouses.length > 0) {
+            setWarehouse(data.warehouses[0].id);
+          }
+        }
+      });
+  }, []);
 
   const handleGoToCounting = async () => {
     if (!code) return;
@@ -179,10 +193,9 @@ export default function ScanPage() {
               onChange={(e) => setWarehouse(e.target.value)}
               className="w-full appearance-none pl-12 pr-5 py-4 bg-white border border-gray-200 rounded-[24px] focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-sm font-bold text-gray-700 shadow-sm"
             >
-              <option value="11">انبار مرکزی (11)</option>
-              <option value="13">انبار فروشگاه (13)</option>
-              <option value="14">انبار کارگاه شارژ (14)</option>
-              <option value="15">انبار کارگاه تعمیرات (15)</option>
+              {warehouses.map(wh => (
+                <option key={wh.id} value={wh.id}>{wh.name} ({wh.id})</option>
+              ))}
             </select>
           </div>
           

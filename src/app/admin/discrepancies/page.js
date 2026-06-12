@@ -5,11 +5,27 @@ import { AlertTriangle, CheckCircle, PackageSearch, RefreshCw, Send, ListTree, A
 
 export default function DiscrepancyDashboard() {
   const [warehouse, setWarehouse] = useState('11');
+  const [warehouses, setWarehouses] = useState([]);
   const [data, setData] = useState({ discrepancies: [], accurate: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.warehouses) {
+          setWarehouses(data.warehouses);
+          if (data.warehouses.length > 0) {
+            setWarehouse(data.warehouses[0].id);
+          }
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (warehouse) {
+      fetchData();
+    }
   }, [warehouse]);
 
   const fetchData = async () => {
@@ -55,10 +71,9 @@ export default function DiscrepancyDashboard() {
               onChange={(e) => setWarehouse(e.target.value)}
               className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:border-indigo-500 flex-1 sm:w-48"
             >
-              <option value="11">انبار مرکزی (11)</option>
-              <option value="13">انبار فروشگاه (13)</option>
-              <option value="14">انبار کارگاه شارژ (14)</option>
-              <option value="15">انبار کارگاه تعمیرات (15)</option>
+              {warehouses.map(wh => (
+                <option key={wh.id} value={wh.id}>{wh.name} ({wh.id})</option>
+              ))}
             </select>
             <button onClick={fetchData} className="bg-gray-900 text-white p-3 rounded-xl hover:bg-gray-800 transition-colors">
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

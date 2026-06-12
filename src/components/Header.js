@@ -55,7 +55,7 @@ export default function Header({ title = 'داشبورد', showBack = false }) {
         </Link>
 
         <div className="flex items-center gap-2 pl-1">
-          {user?.role === 'ADMIN' && (
+          {user?.roles?.includes('ADMIN') && (
             <Link 
               href="/admin" 
               className="w-10 h-10 bg-gray-50 text-gray-600 rounded-[18px] hover:bg-gray-100 transition-colors flex items-center justify-center"

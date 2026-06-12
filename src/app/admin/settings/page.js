@@ -133,6 +133,68 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Warehouses Setting */}
+        <div className="border-t border-gray-50 pt-8">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+              <span className="font-black text-sm">WH</span>
+            </div>
+            <h2 className="text-base font-bold text-gray-800">مدیریت انبارهای حسابفا</h2>
+          </div>
+          <p className="text-xs text-gray-500 leading-relaxed mb-4">
+            لیست انبارهایی که انبارداران مجاز به انبارگردانی آن‌ها هستند. کد انبار باید دقیقاً با کد حسابفا مطابقت داشته باشد.
+          </p>
+          
+          <div className="flex flex-col gap-3">
+            {settings.warehouses?.map((wh) => (
+              <div key={wh.id} className="flex items-center justify-between p-3 rounded-[16px] border border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className="bg-gray-200 text-gray-600 px-3 py-1 rounded-lg text-xs font-black">کد: {wh.id}</div>
+                  <span className="text-sm font-bold text-gray-800">{wh.name}</span>
+                </div>
+                <button
+                  onClick={() => setSettings(s => ({ ...s, warehouses: s.warehouses.filter(w => w.id !== wh.id) }))}
+                  className="text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors"
+                >
+                  حذف
+                </button>
+              </div>
+            ))}
+            
+            <div className="flex gap-2 mt-2">
+              <input 
+                type="number" 
+                placeholder="کد انبار..." 
+                id="wh_id"
+                className="w-24 bg-white border border-gray-200 rounded-[16px] px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" 
+              />
+              <input 
+                type="text" 
+                placeholder="نام انبار..." 
+                id="wh_name"
+                className="flex-1 bg-white border border-gray-200 rounded-[16px] px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" 
+              />
+              <button 
+                onClick={() => {
+                  const id = document.getElementById('wh_id').value;
+                  const name = document.getElementById('wh_name').value;
+                  if (id && name) {
+                    setSettings(s => ({
+                      ...s,
+                      warehouses: [...(s.warehouses || []), { id, name }]
+                    }));
+                    document.getElementById('wh_id').value = '';
+                    document.getElementById('wh_name').value = '';
+                  }
+                }}
+                className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-[16px] text-xs font-bold hover:bg-indigo-100 transition-colors"
+              >
+                افزودن
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div className="flex justify-end">
