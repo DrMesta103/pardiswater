@@ -11,3 +11,9 @@ export function verifyToken(token) {
     return null;
   }
 }
+
+export function hasRole(userRoles, allowedRoles) {
+  if (!userRoles || !Array.isArray(userRoles)) return false;
+  if (!Array.isArray(allowedRoles)) allowedRoles = [allowedRoles];
+  return allowedRoles.some(role => userRoles.includes(role));
+}

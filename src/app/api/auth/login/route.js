@@ -24,9 +24,11 @@ export async function POST(req) {
       return Response.json({ error: 'رمز عبور اشتباه است.' }, { status: 401 });
     }
 
-    const token = signToken({ id: user.id, username: user.username, name: user.name, orgId: user.orgId, role: user.role });
+    let userRoles = Array.isArray(user.roles) ? user.roles : (user.role === 'ADMIN' ? ['ADMIN'] : ['COUNTER']);
 
-    return Response.json({ message: 'با موفقیت وارد شدید', token, user: { id: user.id, name: user.name, orgId: user.orgId, role: user.role, avatarUrl: user.avatarUrl } });
+    const token = signToken({ id: user.id, username: user.username, name: user.name, orgId: user.orgId, roles: userRoles, role: user.role });
+
+    return Response.json({ message: 'با موفقیت وارد شدید', token, user: { id: user.id, name: user.name, orgId: user.orgId, roles: userRoles, avatarUrl: user.avatarUrl } });
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'خطای سرور رخ داد.' }, { status: 500 });

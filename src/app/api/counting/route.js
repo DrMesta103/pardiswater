@@ -5,15 +5,25 @@ export async function POST(req) {
   try {
     const data = await req.json();
     
+    if (data.shelfCode) {
+      await prisma.location.upsert({
+        where: { code: data.shelfCode.toUpperCase() },
+        update: {},
+        create: { code: data.shelfCode.toUpperCase(), floor: '0', region: 0, sector: 'A', row: 0 }
+      });
+    }
+    
     const count = await prisma.counting.create({
       data: {
         product_id: Number(data.product_id),
         product_name: data.product_name,
         warehouse: Number(data.warehouse),
-        shelfCode: data.shelfCode || null,
+        shelfCode: data.shelfCode ? data.shelfCode.toUpperCase() : null,
         old_count: Number(data.old_count),
         new_count: Number(data.new_count),
-        user_id: Number(data.user_id)
+        user_id: Number(data.user_id),
+        mode: data.mode || 'SHELF',
+        is_offline: data.is_offline || false
       }
     });
 

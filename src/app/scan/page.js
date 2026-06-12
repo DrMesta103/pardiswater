@@ -3,23 +3,49 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
-import { ScanLine, Search, Box, X, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ScanLine, Search, Box, X, ChevronDown, CheckCircle2, LayoutGrid, Layers } from 'lucide-react';
 const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
 
 export default function ScanPage() {
+  const [mode, setMode] = useState('ITEM'); // 'ITEM' | 'SHELF'
   const [code, setCode] = useState('');
   const [warehouse, setWarehouse] = useState('11');
   const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [camError, setCamError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [lockError, setLockError] = useState('');
   const router = useRouter();
 
-  const handleGoToCounting = () => {
-    if (code) {
-      router.push(`/counting?code=${code}&warehouse=${warehouse}`);
+  const handleGoToCounting = async () => {
+    if (!code) return;
+    setLockError('');
+    setLoading(true);
+
+    try {
+      if (mode === 'SHELF') {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/locations/lock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ shelfCode: code, action: 'LOCK' })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          setLockError(data.error || 'خطا در قفل‌گذاری قفسه');
+          setLoading(false);
+          return;
+        }
+        router.push(`/counting/shelf?code=${code}&warehouse=${warehouse}`);
+      } else {
+        router.push(`/counting/item?code=${code}&warehouse=${warehouse}`);
+      }
+    } catch (error) {
+      setLockError('خطای ارتباط با سرور');
+      setLoading(false);
     }
   };
-
-  const [camError, setCamError] = useState('');
 
   const handleScan = (detectedCodes) => {
     if (detectedCodes && detectedCodes.length > 0) {
@@ -27,7 +53,7 @@ export default function ScanPage() {
       setCode(scannedValue);
       setCameraEnabled(false);
       setTimeout(() => {
-        router.push(`/counting?code=${scannedValue}&warehouse=${warehouse}`);
+        handleGoToCounting();
       }, 500);
     }
   };
@@ -44,12 +70,30 @@ export default function ScanPage() {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24">
-      <Header title="اسکن کالا" showBack={true} />
+      <Header title="شروع انبارگردانی" showBack={true} />
       
-      <div className="flex-1 px-6 pt-6 flex flex-col items-center max-w-md mx-auto w-full">
+      <div className="flex-1 px-4 md:px-6 pt-4 flex flex-col items-center max-w-md mx-auto w-full">
         
+        {/* Mode Switcher */}
+        <div className="w-full bg-white p-1.5 rounded-[20px] shadow-sm flex mb-6 border border-gray-100">
+          <button 
+            onClick={() => { setMode('ITEM'); setCode(''); setLockError(''); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-bold transition-all ${mode === 'ITEM' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            <Box size={16} />
+            بر اساس کالا
+          </button>
+          <button 
+            onClick={() => { setMode('SHELF'); setCode(''); setLockError(''); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-bold transition-all ${mode === 'SHELF' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            <LayoutGrid size={16} />
+            بر اساس قفسه
+          </button>
+        </div>
+
         {/* Camera Area */}
-        <div className="w-full relative mb-8">
+        <div className="w-full relative mb-6">
           <div className={`w-full aspect-[4/3] rounded-[32px] overflow-hidden flex flex-col items-center justify-center transition-all duration-500 relative ${cameraEnabled ? 'bg-black shadow-2xl' : 'bg-white border border-gray-200 shadow-sm'}`}>
             {cameraEnabled ? (
               <div className="w-full h-full relative">
@@ -88,12 +132,14 @@ export default function ScanPage() {
                 onClick={() => setCameraEnabled(true)}
                 className="w-full h-full flex flex-col items-center justify-center gap-4 py-12"
               >
-                <div className="w-16 h-16 rounded-[20px] bg-indigo-50 flex items-center justify-center text-indigo-500">
+                <div className={`w-16 h-16 rounded-[20px] flex items-center justify-center ${mode === 'SHELF' ? 'bg-indigo-50 text-indigo-500' : 'bg-gray-100 text-gray-600'}`}>
                   <ScanLine size={32} strokeWidth={2} />
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="text-sm font-extrabold text-gray-800 mb-1">فعال‌سازی دوربین</span>
-                  <span className="text-xs font-medium text-gray-400">برای اسکن بارکد کالا کلیک کنید</span>
+                  <span className="text-sm font-extrabold text-gray-800 mb-1">פעال‌سازی دوربین</span>
+                  <span className="text-xs font-medium text-gray-400">
+                    برای اسکن {mode === 'SHELF' ? 'بارکد قفسه' : 'بارکد کالا'} کلیک کنید
+                  </span>
                 </div>
               </motion.button>
             )}
@@ -102,16 +148,24 @@ export default function ScanPage() {
         
         {/* Manual Input */}
         <div className="w-full flex flex-col gap-4">
+          <AnimatePresence>
+            {lockError && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-3 bg-red-50 text-red-600 text-xs rounded-[16px] text-center font-bold">
+                {lockError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="relative">
             <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
               <Search className="text-gray-400" size={18} strokeWidth={2.5} />
             </div>
             <input 
-              type="number" 
+              type={mode === 'SHELF' ? "text" : "number"} 
               dir="ltr"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="ورود دستی کد کالا..."
+              placeholder={mode === 'SHELF' ? "کد قفسه (مثال A-1)..." : "کد کالا..."}
               className="w-full pl-12 pr-5 py-4 bg-white border border-gray-200 rounded-[24px] focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-left text-lg font-bold text-gray-800 placeholder-gray-300 shadow-sm"
             />
           </div>
@@ -135,11 +189,22 @@ export default function ScanPage() {
           <motion.button 
             whileTap={{ scale: 0.98 }}
             onClick={handleGoToCounting}
-            disabled={!code}
-            className="w-full mt-4 py-4 bg-gray-900 text-white text-sm font-extrabold rounded-[24px] transition-all disabled:opacity-50 disabled:bg-gray-300 flex items-center justify-center gap-2 shadow-md shadow-gray-900/10"
+            disabled={!code || loading}
+            className={`w-full mt-4 py-4 text-white text-sm font-extrabold rounded-[24px] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md ${mode === 'SHELF' ? 'bg-indigo-600 shadow-indigo-600/20' : 'bg-gray-900 shadow-gray-900/20'}`}
           >
-            {code ? <CheckCircle2 size={18} strokeWidth={2.5} /> : <Box size={18} strokeWidth={2.5} />}
-            شروع شمارش کالا
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : mode === 'SHELF' ? (
+              <>
+                <Layers size={18} strokeWidth={2.5} />
+                ورود به قفسه و قفل‌گذاری
+              </>
+            ) : (
+              <>
+                <Box size={18} strokeWidth={2.5} />
+                شروع شمارش کالا
+              </>
+            )}
           </motion.button>
         </div>
 

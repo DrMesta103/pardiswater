@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const HESABFA_API_KEY = 'NCuDX3bksHlhXWGIqTvatvme3YTplxdF';
-const HESABFA_TOKEN = '4ddb2fc517f6f6fe6d4b9bdd08fa0df31a564a62e12c4353eb9533ae63447b57ca87c479beb7f02b276929c861dad779';
+const HESABFA_API_KEY = process.env.HESABFA_API_KEY || 'NCuDX3bksHlhXWGIqTvatvme3YTplxdF';
+const HESABFA_TOKEN = process.env.HESABFA_TOKEN || '4ddb2fc517f6f6fe6d4b9bdd08fa0df31a564a62e12c4353eb9533ae63447b57ca87c479beb7f02b276929c861dad779';
 
 export async function POST(req) {
   try {

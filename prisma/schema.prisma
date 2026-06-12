@@ -19,12 +19,16 @@ model User {
   password  String
   name      String?
   mobile    String?
-  role      Role       @default(USER)
+  role      Role       @default(USER) // Deprecated, use roles instead
+  roles     Json?      // e.g. ["COUNTER", "ACCOUNTANT", "SUPERVISOR", "ADMIN"]
   orgId     Int?       
   avatarUrl String?    @db.LongText
   challenge String?    @db.Text
   countings Counting[]
   authenticators Authenticator[]
+  lockedLocations Location[] @relation("LocationLocks")
+  assignedTasks   Task[]     @relation("AssignedTasks")
+  createdTasks    Task[]     @relation("CreatedTasks")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -50,6 +54,10 @@ model Location {
   sector    String   
   row       Int      
   countings Counting[]
+  isLocked   Boolean   @default(false)
+  lockedById Int?
+  lockedBy   User?     @relation("LocationLocks", fields: [lockedById], references: [id])
+  lockedAt   DateTime?
   createdAt DateTime   @default(now())
 }
 
@@ -66,6 +74,31 @@ model Counting {
   new_count    Int
   user_id      Int
   user         User      @relation(fields: [user_id], references: [id])
+  mode         String    @default("SHELF") // SHELF, ITEM, TASK
+  status       String    @default("PENDING") // PENDING, APPROVED, REJECTED, CORRECTION_REQUESTED
+  correctionNote String? @db.Text
+  is_offline   Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+}
+
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  type        String   // RECOUNT, SUGGESTED_SHELF, SUGGESTED_ITEM
+  targetId    String   // shelfCode or product_id
+  targetName  String?  // for UI display
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED
+  assignedTo  Int?
+  user        User?    @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  createdBy   Int
+  creator     User     @relation("CreatedTasks", fields: [createdBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
