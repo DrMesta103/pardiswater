@@ -1,14 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { PackageOpen, Search, Filter, Box } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { PackageSearch, Search, AlertCircle, Box, Layers, Filter } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStock, setFilterStock] = useState('all'); // 'all', 'in-stock', 'out-of-stock'
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all'); // 'all', 'in-stock', 'out-of-stock'
 
   useEffect(() => {
     fetchProducts();
@@ -23,9 +23,8 @@ export default function ProductsPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.Success && data.Result?.List) {
-          setProducts(data.Result.List);
-        }
+        // Assuming Hesabfa returns data.List for query responses
+        setProducts(data.List || data || []);
       }
     } catch (e) {
       console.error(e);
@@ -35,20 +34,22 @@ export default function ProductsPage() {
   };
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.Name.includes(searchTerm) || p.Code.includes(searchTerm);
-    if (!matchesSearch) return false;
+    const matchesSearch = p.Name?.includes(search) || p.Code?.toString().includes(search);
+    const matchesFilter = 
+      filter === 'all' ? true : 
+      filter === 'in-stock' ? p.Stock > 0 : 
+      p.Stock <= 0;
     
-    if (filterStock === 'in-stock') return p.Stock > 0;
-    if (filterStock === 'out-of-stock') return p.Stock <= 0;
-    return true;
+    return matchesSearch && matchesFilter;
   });
 
   if (loading) {
     return (
       <div className="w-full min-h-screen bg-gray-50 flex flex-col">
-        <Header title="لیست محصولات" showBack={true} />
-        <div className="flex-1 flex justify-center items-center">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <Header title="لیست کالاها" showBack={true} />
+        <div className="flex-1 flex flex-col justify-center items-center gap-4">
+          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold text-gray-500">در حال دریافت کالاها از حسابفا...</span>
         </div>
       </div>
     );
@@ -56,76 +57,121 @@ export default function ProductsPage() {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
-      <Header title="محصولات حسابفا" showBack={true} />
+      <Header title="لیست محصولات" showBack={true} />
 
-      <div className="flex-1 p-5 flex flex-col gap-6 max-w-3xl mx-auto w-full mt-2">
-        <div className="flex flex-col">
-          <h2 className="text-xl font-black text-gray-800 tracking-tight">موجودی کالاها</h2>
-          <p className="text-xs text-gray-400 font-medium mt-1">لیست زنده کالاهای ثبت شده در نرم‌افزار حسابفا</p>
+      <div className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-4xl mx-auto w-full mt-2">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+            <PackageSearch className="text-indigo-600" size={24} strokeWidth={2.5} />
+            پایگاه داده کالاها
+          </h2>
+          <p className="text-xs text-gray-500 font-medium leading-relaxed">
+            مشاهده لحظه‌ای موجودی و اطلاعات صدها کالا متصل به سیستم جامع حسابفا
+          </p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-3">
+        {/* Filters and Search */}
+        <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="جستجو با نام یا کد کالا..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-[16px] pr-12 pl-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="جستجو بر اساس نام یا کد کالا..." 
+              className="w-full bg-gray-50 border border-gray-200 rounded-[16px] pr-12 pl-4 py-3.5 text-sm font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all placeholder:font-normal"
             />
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           </div>
-          <div className="flex gap-2 shrink-0">
-            {['all', 'in-stock', 'out-of-stock'].map(filter => (
+          
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+            <div className="w-10 h-10 bg-gray-100 text-gray-400 rounded-[12px] flex items-center justify-center shrink-0">
+              <Filter size={16} />
+            </div>
+            {['all', 'in-stock', 'out-of-stock'].map(f => (
               <button
-                key={filter}
-                onClick={() => setFilterStock(filter)}
-                className={`px-4 py-3 rounded-[16px] text-xs font-bold transition-all border shadow-sm ${
-                  filterStock === filter 
-                  ? 'bg-gray-900 text-white border-gray-900' 
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2.5 rounded-[12px] text-xs font-bold whitespace-nowrap transition-all border ${
+                  filter === f 
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20' 
                   : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {filter === 'all' ? 'همه' : filter === 'in-stock' ? 'موجود' : 'ناموجود'}
+                {f === 'all' ? 'همه کالاها' : f === 'in-stock' ? 'موجود' : 'ناموجود'}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          {filteredProducts.map(p => (
-            <motion.div 
-              key={p.Code}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-50 rounded-[14px] flex items-center justify-center shrink-0">
-                  <PackageOpen className="text-gray-400" size={20} strokeWidth={2} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-gray-800 text-sm line-clamp-1">{p.Name}</span>
-                  <span className="text-[11px] text-gray-400 font-bold mt-0.5" dir="ltr">{p.Code}</span>
-                </div>
-              </div>
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-white rounded-[16px] p-4 border border-gray-100 flex flex-col gap-1 shadow-sm">
+            <span className="text-[10px] text-gray-400 font-bold uppercase">تعداد کل یافت شده</span>
+            <span className="text-lg font-black text-gray-800">{filteredProducts.length}</span>
+          </div>
+          <div className="bg-white rounded-[16px] p-4 border border-green-100 flex flex-col gap-1 shadow-sm">
+            <span className="text-[10px] text-green-600 font-bold uppercase">کالاهای موجود</span>
+            <span className="text-lg font-black text-green-700">
+              {filteredProducts.filter(p => p.Stock > 0).length}
+            </span>
+          </div>
+        </div>
 
-              <div className={`shrink-0 px-3 py-1.5 rounded-[12px] flex items-center gap-1.5 ${p.Stock > 0 ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
-                <Box size={14} strokeWidth={2.5} />
-                <span className="text-xs font-black">{p.Stock} {p.Unit || 'عدد'}</span>
-              </div>
-            </motion.div>
-          ))}
+        {/* Products List */}
+        <div className="flex flex-col gap-3">
+          <AnimatePresence>
+            {filteredProducts.map((p) => (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={p.Code} 
+                className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-5 rounded-[20px] border border-gray-200 bg-white shadow-sm gap-4"
+              >
+                <div className="flex items-start md:items-center gap-4">
+                  <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
+                    <Box size={24} strokeWidth={1.5} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold text-gray-800 leading-tight">{p.Name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 font-bold dir-ltr flex items-center gap-1">
+                        <span className="text-gray-400 font-normal">کد:</span> {p.Code}
+                      </span>
+                      {p.Barcode && (
+                        <span className="text-xs text-gray-500 font-bold dir-ltr flex items-center gap-1 border-r border-gray-200 pr-3">
+                          <span className="text-gray-400 font-normal">بارکد:</span> {p.Barcode}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between md:justify-end gap-6 bg-gray-50 md:bg-transparent p-3 md:p-0 rounded-[16px]">
+                  <div className="flex flex-col items-center md:items-end">
+                    <span className="text-[10px] font-bold text-gray-400 mb-0.5">موجودی سیستم</span>
+                    <span className={`text-lg font-black ${p.Stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      {p.Stock} <span className="text-xs font-bold text-gray-500">{p.Unit || 'عدد'}</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center md:items-end border-r border-gray-200 pr-6">
+                    <span className="text-[10px] font-bold text-gray-400 mb-0.5">فی فروش</span>
+                    <span className="text-sm font-black text-gray-700">
+                      {p.SalesPrice?.toLocaleString()} <span className="text-[10px] text-gray-400">تومان</span>
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
           
           {filteredProducts.length === 0 && (
-            <div className="py-12 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
-                <Filter className="text-gray-400" size={24} />
-              </div>
-              <span className="text-sm font-bold text-gray-500">کالایی یافت نشد</span>
+            <div className="text-center py-12 bg-white rounded-[24px] border border-dashed border-gray-300 flex flex-col items-center gap-3">
+              <AlertCircle className="text-gray-300" size={32} />
+              <p className="text-sm font-bold text-gray-500">هیچ کالایی با این مشخصات یافت نشد.</p>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

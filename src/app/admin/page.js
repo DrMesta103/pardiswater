@@ -65,20 +65,38 @@ export default function AdminDashboard() {
               <span className="font-extrabold text-xs text-center text-gray-700">آمار طبقات</span>
             </Link>
           </motion.div>
+          
+          <motion.div variants={item}>
+            <Link href="/admin/warehouses" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-6 flex flex-col items-center justify-center aspect-square gap-3 hover:bg-white hover:scale-[1.02] active:scale-95 transition-all">
+              <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              </div>
+              <span className="font-extrabold text-xs text-center text-gray-700">مدیریت انبارها</span>
+            </Link>
+          </motion.div>
+          
+          <motion.div variants={item}>
+            <Link href="/admin/products" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-6 flex flex-col items-center justify-center aspect-square gap-3 hover:bg-white hover:scale-[1.02] active:scale-95 transition-all">
+              <div className="w-12 h-12 bg-teal-50 text-teal-500 rounded-2xl flex items-center justify-center mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              </div>
+              <span className="font-extrabold text-xs text-center text-gray-700">لیست کالاها</span>
+            </Link>
+          </motion.div>
         </div>
         
         <motion.div variants={item}>
-          <div className="opacity-60 bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-5 flex items-center justify-between transition-all cursor-not-allowed">
+          <Link href="/admin/users" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-5 flex items-center justify-between hover:bg-white hover:scale-[1.02] active:scale-95 transition-all">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gray-100 text-gray-400 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                 <Users strokeWidth={1.5} size={20} />
               </div>
-              <span className="font-extrabold text-sm text-gray-500">مدیریت کاربران (به زودی)</span>
+              <span className="font-extrabold text-sm text-gray-800">مدیریت کاربران و گزارشات</span>
             </div>
             <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-gray-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
             </div>
-          </div>
+          </Link>
         </motion.div>
       </motion.div>
     </div>

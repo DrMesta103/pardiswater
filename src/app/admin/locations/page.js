@@ -127,9 +127,14 @@ export default function AdminLocations() {
   };
 
   const floors = [...new Set(locations.map(loc => loc.floor))].sort();
-  const filteredLocations = activeFilter === 'all' 
-    ? locations 
-    : locations.filter(loc => loc.floor === activeFilter);
+  
+  let filteredLocations = locations;
+  if (selectedWarehouse) {
+    filteredLocations = filteredLocations.filter(loc => loc.warehouse == selectedWarehouse);
+  }
+  if (activeFilter !== 'all') {
+    filteredLocations = filteredLocations.filter(loc => loc.floor === activeFilter);
+  }
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">

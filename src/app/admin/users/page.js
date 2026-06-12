@@ -1,21 +1,28 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
+import { Users, Check, XCircle, Search, ShieldAlert, BarChart2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Edit2, Check, Shield, User as UserIcon, X } from 'lucide-react';
+import Link from 'next/link';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingUser, setEditingUser] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [saving, setSaving] = useState(null); // id of user being saved
+  const [toast, setToast] = useState({ show: false, message: '', isError: false });
 
   const availableRoles = [
-    { id: 'ADMIN', label: 'مدیر کل' },
-    { id: 'SUPERVISOR', label: 'سرپرست انبار' },
+    { id: 'ADMIN', label: 'مدیر' },
+    { id: 'SUPERVISOR', label: 'سرپرست' },
     { id: 'ACCOUNTANT', label: 'حسابدار' },
     { id: 'COUNTER', label: 'انبارگردان' }
   ];
+
+  const showToast = (message, isError = false) => {
+    setToast({ show: true, message, isError });
+    setTimeout(() => setToast({ show: false, message: '', isError: false }), 3000);
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -23,47 +30,50 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/users');
       if (res.ok) {
-        setUsers(await res.json());
+        const data = await res.json();
+        setUsers(data);
       }
     } catch (e) {
-      console.error(e);
+      showToast('خطا در دریافت لیست کاربران', true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveRoles = async () => {
-    if (!editingUser) return;
-    setSaving(true);
+  const handleToggleRole = async (userId, roleId, currentRoles) => {
+    setSaving(userId);
+    let newRoles = [...currentRoles];
+    if (newRoles.includes(roleId)) {
+      newRoles = newRoles.filter(r => r !== roleId);
+    } else {
+      newRoles.push(roleId);
+    }
+
     try {
-      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+      const res = await fetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roles: editingUser.roles })
+        body: JSON.stringify({ id: userId, roles: newRoles })
       });
+      
       if (res.ok) {
-        fetchUsers();
-        setEditingUser(null);
+        setUsers(users.map(u => u.id === userId ? { ...u, roles: newRoles } : u));
+        showToast('نقش‌ها با موفقیت ذخیره شد');
+      } else {
+        showToast('خطا در بروزرسانی نقش', true);
       }
     } catch (e) {
-      console.error(e);
+      showToast('خطای شبکه', true);
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
 
-  const toggleRole = (roleId) => {
-    setEditingUser(prev => {
-      const roles = prev.roles || [];
-      if (roles.includes(roleId)) {
-        return { ...prev, roles: roles.filter(r => r !== roleId) };
-      } else {
-        return { ...prev, roles: [...roles, roleId] };
-      }
-    });
-  };
+  const filteredUsers = users.filter(u => 
+    u.name?.includes(search) || u.username?.includes(search) || u.mobile?.includes(search)
+  );
 
   if (loading) {
     return (
@@ -80,124 +90,107 @@ export default function UsersPage() {
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
       <Header title="مدیریت کاربران" showBack={true} />
 
-      <div className="flex-1 p-5 flex flex-col gap-6 max-w-2xl mx-auto w-full mt-2">
-        <div className="flex flex-col">
-          <h2 className="text-xl font-black text-gray-800 tracking-tight">لیست کاربران سیستم</h2>
-          <p className="text-xs text-gray-400 font-medium mt-1">مدیریت دسترسی‌ها و بررسی فعالیت کارکنان</p>
+      <div className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-2xl mx-auto w-full mt-2">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+            <Users className="text-indigo-600" size={24} strokeWidth={2.5} />
+            لیست کاربران سیستم
+          </h2>
+          <p className="text-xs text-gray-500 font-medium leading-relaxed">
+            تعیین نقش‌های کاربران و مشاهده آمار انبارگردانی آن‌ها
+          </p>
         </div>
 
-        <div className="flex flex-col gap-3">
-          {users.map(user => {
-            const userRoles = user.roles || [];
-            return (
-              <motion.div 
-                key={user.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm flex flex-col gap-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center shrink-0">
-                      <UserIcon size={18} strokeWidth={2.5} />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-gray-800 text-sm">{user.name || user.username}</span>
-                      <span className="text-[10px] text-gray-400 font-medium mt-0.5" dir="ltr">{user.username}</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setEditingUser(user)}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                  >
-                    <Edit2 size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-                  <div className="flex gap-1 flex-wrap">
-                    {userRoles.map(r => {
-                      const label = availableRoles.find(ar => ar.id === r)?.label || r;
-                      return <span key={r} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold">{label}</span>;
-                    })}
-                    {userRoles.length === 0 && <span className="text-[10px] text-gray-400">بدون نقش</span>}
-                  </div>
-                  <div className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-lg">
-                    {user._count?.countings || 0} شمارش
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="جستجو بر اساس نام، نام کاربری یا موبایل..." 
+            className="w-full bg-white border border-gray-200 rounded-[20px] pr-12 pl-4 py-4 text-sm font-bold focus:outline-none focus:border-indigo-500 shadow-sm transition-all"
+          />
         </div>
-      </div>
 
-      {/* Edit Modal */}
-      <AnimatePresence>
-        {editingUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={() => setEditingUser(null)}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="w-full max-w-sm bg-white rounded-[24px] shadow-2xl relative z-10 flex flex-col overflow-hidden"
-            >
-              <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div className="flex items-center gap-2">
-                  <Shield size={18} className="text-indigo-600" />
-                  <span className="font-bold text-gray-800 text-sm">ویرایش دسترسی‌ها</span>
-                </div>
-                <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="p-5 flex flex-col gap-4">
-                <div className="text-sm font-bold text-gray-700 text-center mb-2">
-                  {editingUser.name || editingUser.username}
+        {/* Users List */}
+        <div className="flex flex-col gap-4">
+          {filteredUsers.map(user => (
+            <div key={user.id} className="bg-white border border-gray-100 rounded-[24px] p-5 shadow-sm flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-lg">
+                    {user.name ? user.name.charAt(0) : '?'}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-800">{user.name || 'کاربر بدون نام'}</span>
+                    <span className="text-xs text-gray-400 font-medium dir-ltr text-right">{user.mobile || user.username}</span>
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3">
+                <Link 
+                  href={`/admin/users/${user.id}`}
+                  className="bg-gray-50 text-gray-600 hover:bg-gray-100 px-3 py-2 rounded-[12px] text-xs font-bold transition-colors flex items-center gap-1 border border-gray-200"
+                >
+                  <BarChart2 size={14} />
+                  کارنامه
+                </Link>
+              </div>
+
+              <div className="border-t border-gray-50 pt-4">
+                <p className="text-[10px] font-black text-gray-400 mb-2 flex items-center gap-1">
+                  <ShieldAlert size={12} /> تعیین نقش‌های مجاز:
+                </p>
+                <div className="flex flex-wrap gap-2">
                   {availableRoles.map(role => {
-                    const isSelected = editingUser.roles?.includes(role.id);
+                    const isSelected = user.roles?.includes(role.id);
+                    const isSaving = saving === user.id;
+                    
                     return (
-                      <motion.button
-                        whileTap={{ scale: 0.97 }}
+                      <button
                         key={role.id}
-                        onClick={() => toggleRole(role.id)}
-                        className={`flex items-center justify-between p-3 rounded-[16px] border text-xs font-bold transition-all ${
+                        onClick={() => handleToggleRole(user.id, role.id, user.roles || [])}
+                        disabled={isSaving}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                           isSelected 
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
-                          : 'border-gray-200 bg-white text-gray-600'
-                        }`}
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-700' 
+                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                        } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {role.label}
-                        <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-transparent'}`}>
-                          <Check size={10} strokeWidth={3} />
-                        </div>
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
-
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSaveRoles}
-                  disabled={saving}
-                  className="w-full mt-2 flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-3.5 rounded-[16px] text-sm font-bold shadow-md disabled:opacity-70 transition-colors hover:bg-gray-800"
-                >
-                  {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'ذخیره دسترسی‌ها'}
-                </motion.button>
               </div>
-            </motion.div>
-          </div>
+              
+              <div className="bg-gray-50 rounded-[12px] p-3 flex justify-between items-center mt-1">
+                <span className="text-xs text-gray-500 font-medium">تعداد اقلام شمارش شده:</span>
+                <span className="text-sm font-black text-gray-800">{user._count?.countings || 0} مورد</span>
+              </div>
+            </div>
+          ))}
+          
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-10 bg-white rounded-[24px] border border-dashed border-gray-300">
+              <Users className="mx-auto text-gray-300 mb-2" size={32} />
+              <p className="text-sm font-bold text-gray-500">کاربری یافت نشد.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl shadow-xl backdrop-blur-3xl border text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 ${toast.isError ? 'bg-red-50/90 border-red-100 text-red-600' : 'bg-gray-900/90 border-gray-700 text-white'}`}
+          >
+            {toast.isError ? <XCircle size={14} /> : <Check size={14} />}
+            {toast.message}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
