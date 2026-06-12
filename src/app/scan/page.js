@@ -150,7 +150,7 @@ export default function ScanPage() {
                   <ScanLine size={32} strokeWidth={2} />
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="text-sm font-extrabold text-gray-800 mb-1">פעال‌سازی دوربین</span>
+                  <span className="text-sm font-extrabold text-gray-800 mb-1">فعال‌سازی دوربین</span>
                   <span className="text-xs font-medium text-gray-400">
                     برای اسکن {mode === 'SHELF' ? 'بارکد قفسه' : 'بارکد کالا'} کلیک کنید
                   </span>

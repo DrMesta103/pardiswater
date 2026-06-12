@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     blind_counting: false,
-    correction_roles: ['ADMIN', 'SUPERVISOR']
+    correction_roles: ['ADMIN', 'SUPERVISOR'],
+    uncounted_shelf_days: 10
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -158,6 +159,31 @@ export default function SettingsPage() {
                   </motion.button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Uncounted Shelves Warning Days */}
+          <div className="border-t border-gray-50 pt-8">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-[12px] bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                <AlertCircle size={16} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-sm font-bold text-gray-800">هشدار قفسه‌های شمارش‌نشده</h2>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              قفسه‌هایی که بیشتر از این تعداد روز از آخرین انبارگردانی‌شان گذشته باشد، در صفحه اصلی برای شمارش مجدد پیشنهاد می‌شوند.
+            </p>
+            
+            <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-[16px] border border-gray-100">
+              <input 
+                type="number" 
+                min="1"
+                max="365"
+                value={settings.uncounted_shelf_days || 10}
+                onChange={e => setSettings(s => ({ ...s, uncounted_shelf_days: Number(e.target.value) }))}
+                className="w-20 bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-center font-black text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+              <span className="text-sm font-bold text-gray-600">روز</span>
             </div>
           </div>
         </div>
