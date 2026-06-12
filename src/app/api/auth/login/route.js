@@ -24,7 +24,12 @@ export async function POST(req) {
       return Response.json({ error: 'رمز عبور اشتباه است.' }, { status: 401 });
     }
 
-    let userRoles = Array.isArray(user.roles) ? user.roles : (user.role === 'ADMIN' ? ['ADMIN'] : ['COUNTER']);
+    let parsedRoles = user.roles;
+    if (typeof parsedRoles === 'string') {
+      try { parsedRoles = JSON.parse(parsedRoles); } catch (e) { parsedRoles = null; }
+    }
+    
+    let userRoles = Array.isArray(parsedRoles) ? parsedRoles : (user.role === 'ADMIN' ? ['ADMIN'] : ['COUNTER']);
 
     const token = signToken({ id: user.id, username: user.username, name: user.name, orgId: user.orgId, roles: userRoles, role: user.role });
 
