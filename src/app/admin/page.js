@@ -44,7 +44,7 @@ export default function AdminDashboard() {
               <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center mb-1">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
               </div>
-              <span className="font-extrabold text-xs text-center text-gray-700">تنظیمات و انبارها</span>
+              <span className="font-extrabold text-xs text-center text-gray-700">تنظیمات مدیریت</span>
             </Link>
           </motion.div>
 
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-1">
                 <Layers strokeWidth={1.5} size={24} />
               </div>
-              <span className="font-extrabold text-xs text-center text-gray-700">وضعیت قفسه‌ها</span>
+              <span className="font-extrabold text-xs text-center text-gray-700">مدیریت قفسه‌ها</span>
             </Link>
           </motion.div>
           
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
               <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                 <Users strokeWidth={1.5} size={20} />
               </div>
-              <span className="font-extrabold text-sm text-gray-800">مدیریت کاربران و گزارشات</span>
+              <span className="font-extrabold text-sm text-gray-800">کاربران</span>
             </div>
             <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
               <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>

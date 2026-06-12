@@ -96,16 +96,6 @@ export default function WarehousesPage() {
 
       <div className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-lg mx-auto w-full mt-2">
         
-        <div className="flex flex-col mb-2">
-          <h2 className="text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
-            <Server className="text-indigo-600" size={24} strokeWidth={2.5} />
-            مدیریت انبارهای حسابفا
-          </h2>
-          <p className="text-xs text-gray-500 font-medium mt-2 leading-relaxed">
-            کد انبار باید دقیقاً منطبق با کد انبار در سیستم حسابفا باشد. با افزودن انبار در اینجا، دسترسی کاربران به آن در اپلیکیشن فعال می‌شود.
-          </p>
-        </div>
-
         {/* Add New Warehouse */}
         <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50/50 rounded-bl-full -z-0"></div>

@@ -142,14 +142,6 @@ export default function AdminLocations() {
       
       <div className="flex-1 p-5 flex flex-col gap-6 max-w-md mx-auto w-full mt-2">
         
-        {/* Header Title */}
-        <div className="flex flex-col">
-          <h2 className="text-xl font-black text-gray-800 tracking-tight">تنظیمات قفسه‌ها</h2>
-          <p className="text-xs text-gray-400 font-medium mt-1">
-            ثبت، ویرایش و مدیریت قفسه‌های انبار
-          </p>
-        </div>
-
         {/* Action Box */}
         <div className="w-full bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
           

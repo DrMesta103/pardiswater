@@ -92,11 +92,6 @@ export default function SettingsPage() {
       <Header title="تنظیمات سیستم" showBack={true} />
 
       <div className="flex-1 p-5 flex flex-col gap-6 max-w-lg mx-auto w-full mt-2">
-        <div className="flex flex-col">
-          <h2 className="text-xl font-black text-gray-800 tracking-tight">تنظیمات اصلی</h2>
-          <p className="text-xs text-gray-400 font-medium mt-1">مدیریت قوانین انبارگردانی و دسترسی‌ها</p>
-        </div>
-
         <div className="w-full bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex flex-col gap-8">
           
           {/* Blind Counting Setting */}
