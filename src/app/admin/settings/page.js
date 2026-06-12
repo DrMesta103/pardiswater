@@ -126,6 +126,32 @@ export default function SettingsPage() {
             </button>
           </div>
 
+          {/* Show Suggested Shelves Setting */}
+          <div className="flex items-start justify-between gap-4 border-b border-gray-50 pb-8">
+            <div className="flex-1 pr-2">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <AlertCircle size={16} strokeWidth={2.5} />
+                </div>
+                <h2 className="text-sm font-bold text-gray-800">پیشنهاد قفسه‌های شمارش‌نشده</h2>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                در صورت فعال بودن، در صفحه داشبورد لیستی از قفسه‌هایی که مدتی شمارش نشده‌اند به کاربر پیشنهاد داده می‌شود.
+              </p>
+            </div>
+            
+            <button 
+              onClick={() => setSettings(s => ({ ...s, show_suggested_shelves: s.show_suggested_shelves === undefined ? false : !s.show_suggested_shelves }))}
+              className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${(settings.show_suggested_shelves ?? true) ? 'bg-emerald-600' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={settings.show_suggested_shelves ?? true}
+            >
+              <span 
+                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${(settings.show_suggested_shelves ?? true) ? '-translate-x-6' : 'translate-x-0'}`} 
+              />
+            </button>
+          </div>
+
           {/* Correction Roles Setting */}
           <div>
             <div className="flex items-center gap-2 mb-2">

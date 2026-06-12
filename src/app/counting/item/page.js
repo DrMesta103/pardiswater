@@ -168,6 +168,22 @@ function ItemCountingContent() {
     }
   };
 
+  const handleCancelItem = async () => {
+    const reason = window.prompt('لطفاً دلیل لغو انبارگردانی این کالا را وارد کنید:');
+    if (!reason) return;
+    
+    try {
+      await fetch('/api/counting/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: code, warehouse, userId: user?.id, reason, mode: 'ITEM' })
+      });
+      router.push('/dashboard');
+    } catch (error) {
+      alert('خطا در لغو انبارگردانی کالا');
+    }
+  };
+
   const handleFinish = () => {
     router.push('/dashboard');
   };
@@ -317,12 +333,20 @@ function ItemCountingContent() {
           </div>
         )}
         
-        <button 
-          onClick={handleFinish}
-          className="w-full py-4 bg-white border border-gray-200 text-gray-600 text-sm font-extrabold rounded-[20px] transition-all hover:bg-gray-50 hover:text-gray-900 mt-2 shadow-sm"
-        >
-          پایان کار با این کالا
-        </button>
+        <div className="flex items-center gap-2 mt-2">
+          <button 
+            onClick={handleCancelItem}
+            className="flex-1 py-4 bg-red-50 border border-red-100 text-red-500 text-sm font-extrabold rounded-[20px] transition-all hover:bg-red-100 shadow-sm"
+          >
+            لغو انبارگردانی
+          </button>
+          <button 
+            onClick={handleFinish}
+            className="flex-[2] py-4 bg-white border border-gray-200 text-gray-600 text-sm font-extrabold rounded-[20px] transition-all hover:bg-gray-50 hover:text-gray-900 shadow-sm"
+          >
+            پایان کار با این کالا
+          </button>
+        </div>
 
       </div>
     </div>

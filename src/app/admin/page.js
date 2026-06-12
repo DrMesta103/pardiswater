@@ -98,6 +98,20 @@ export default function AdminDashboard() {
             </div>
           </Link>
         </motion.div>
+        
+        <motion.div variants={item}>
+          <Link href="/admin/logs" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-5 flex items-center justify-between hover:bg-white hover:scale-[1.02] active:scale-95 transition-all">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <span className="font-extrabold text-sm text-gray-800">لاگ عملیات و فعالیت‌ها</span>
+            </div>
+            <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
+              <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+            </div>
+          </Link>
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -23,8 +23,11 @@ export default function ProductsPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // Assuming Hesabfa returns data.List for query responses
-        setProducts(data.List || data || []);
+        // Safely extract the array of products from the Hesabfa response
+        const productList = data?.Result?.List || data?.List || (Array.isArray(data) ? data : []);
+        setProducts(productList);
+      } else {
+        setProducts([]);
       }
     } catch (e) {
       console.error(e);

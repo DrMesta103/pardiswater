@@ -158,7 +158,7 @@ export default function SettingsPage() {
           
           <div className="text-center">
             <h3 className="text-lg font-black text-gray-800">{user?.name || 'کاربر'}</h3>
-            <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-wider">{user?.role === 'ADMIN' ? 'مدیریت کل' : 'کاربر عادی'}</p>
+            <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-wider">{user?.roles?.includes('ADMIN') ? 'مدیریت کل' : 'کاربر عادی'}</p>
           </div>
         </motion.section>
 

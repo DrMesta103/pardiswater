@@ -205,6 +205,22 @@ function ShelfCountingContent() {
     }
   };
 
+  const handleCancelShelf = async () => {
+    const reason = window.prompt('لطفاً دلیل لغو انبارگردانی این قفسه را وارد کنید:');
+    if (!reason) return;
+    
+    try {
+      await fetch('/api/counting/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shelfCode, warehouse, userId: user?.id, reason, mode: 'SHELF' })
+      });
+      router.push('/dashboard');
+    } catch (error) {
+      alert('خطا در لغو انبارگردانی');
+    }
+  };
+
   const isBlind = settings?.blind_counting && !hasRole(user?.roles, ['ADMIN', 'SUPERVISOR']);
 
   if (loading) {
@@ -234,13 +250,22 @@ function ShelfCountingContent() {
           </div>
         </div>
         
-        <button 
-          onClick={handleFinishShelf}
-          className="bg-white/20 hover:bg-white/30 text-white text-xs font-black py-2.5 px-4 rounded-[14px] transition-colors flex items-center gap-2 backdrop-blur-sm shadow-sm"
-        >
-          <Unlock size={14} strokeWidth={3} />
-          پایان قفسه
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleCancelShelf}
+            className="bg-red-500/20 hover:bg-red-500/40 text-red-100 text-xs font-black py-2.5 px-3 rounded-[14px] transition-colors flex items-center gap-1 backdrop-blur-sm"
+          >
+            <X size={14} strokeWidth={3} />
+            لغو
+          </button>
+          <button 
+            onClick={handleFinishShelf}
+            className="bg-white/20 hover:bg-white/30 text-white text-xs font-black py-2.5 px-4 rounded-[14px] transition-colors flex items-center gap-2 backdrop-blur-sm shadow-sm"
+          >
+            <Unlock size={14} strokeWidth={3} />
+            پایان قفسه
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 p-4 md:p-6 max-w-md mx-auto w-full flex flex-col gap-6 mt-2">

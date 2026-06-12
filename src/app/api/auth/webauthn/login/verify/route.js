@@ -46,9 +46,9 @@ export async function POST(req) {
       try { parsedRoles = JSON.parse(parsedRoles); } catch (e) { parsedRoles = null; }
     }
     
-    let userRoles = Array.isArray(parsedRoles) ? parsedRoles : (user.role === 'ADMIN' ? ['ADMIN'] : ['COUNTER']);
-      const token = signToken({ id: user.id, username: user.username, name: user.name, roles: userRoles, role: user.role });
-      return NextResponse.json({ verified: true, token, user: { id: user.id, name: user.name, roles: userRoles, role: user.role } });
+    let userRoles = Array.isArray(parsedRoles) ? parsedRoles : ['COUNTER'];
+      const token = signToken({ id: user.id, username: user.username, name: user.name, roles: userRoles });
+      return NextResponse.json({ verified: true, token, user: { id: user.id, name: user.name, roles: userRoles } });
     }
     return NextResponse.json({ verified: false }, { status: 400 });
   } catch (error) {

@@ -29,9 +29,9 @@ export async function POST(req) {
       try { parsedRoles = JSON.parse(parsedRoles); } catch (e) { parsedRoles = null; }
     }
     
-    let userRoles = Array.isArray(parsedRoles) ? parsedRoles : (user.role === 'ADMIN' ? ['ADMIN'] : ['COUNTER']);
+    let userRoles = Array.isArray(parsedRoles) ? parsedRoles : ['COUNTER'];
 
-    const token = signToken({ id: user.id, username: user.username, name: user.name, orgId: user.orgId, roles: userRoles, role: user.role });
+    const token = signToken({ id: user.id, username: user.username, name: user.name, orgId: user.orgId, roles: userRoles });
 
     return Response.json({ message: 'با موفقیت وارد شدید', token, user: { id: user.id, name: user.name, orgId: user.orgId, roles: userRoles, avatarUrl: user.avatarUrl } });
   } catch (error) {

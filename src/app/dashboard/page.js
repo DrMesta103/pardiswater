@@ -7,25 +7,43 @@ import { History, ScanLine, ListChecks, AlertTriangle, Layers, MapPin } from 'lu
 
 export default function Dashboard() {
   const [uncountedShelves, setUncountedShelves] = useState([]);
+  const [activeSessions, setActiveSessions] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [user, setUser] = useState(null);
   
   useEffect(() => {
-    fetchData();
+    const userData = localStorage.getItem('user');
+    let u = null;
+    if (userData) {
+      u = JSON.parse(userData);
+      setUser(u);
+    }
+    fetchData(u);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (currentUser) => {
     try {
       const setRes = await fetch('/api/settings');
-      let currentSettings = { uncounted_shelf_days: 10 };
+      let currentSettings = { uncounted_shelf_days: 10, show_suggested_shelves: true };
       if (setRes.ok) {
         currentSettings = await setRes.json();
         setSettings(currentSettings);
       }
 
-      const uncRes = await fetch(`/api/reports/uncounted?days=${currentSettings.uncounted_shelf_days || 10}`);
-      if (uncRes.ok) {
-        const uncData = await uncRes.json();
-        setUncountedShelves(uncData.uncounted || []);
+      if (currentSettings.show_suggested_shelves !== false) {
+        const uncRes = await fetch(`/api/reports/uncounted?days=${currentSettings.uncounted_shelf_days || 10}`);
+        if (uncRes.ok) {
+          const uncData = await uncRes.json();
+          setUncountedShelves(uncData.uncounted || []);
+        }
+      }
+
+      if (currentUser?.id) {
+        const actRes = await fetch(`/api/locations/active?userId=${currentUser.id}`);
+        if (actRes.ok) {
+          const actData = await actRes.json();
+          setActiveSessions(actData.active || []);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -76,22 +94,43 @@ export default function Dashboard() {
           </motion.div>
         </div>
         
-        <motion.div variants={item}>
-          <Link href="/my-counts" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-sm p-5 flex items-center justify-between hover:bg-white hover:scale-[1.02] active:scale-95 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
-                <ListChecks strokeWidth={2} size={20} />
-              </div>
-              <span className="font-black text-sm text-gray-800">شمارش‌های من</span>
+        {/* Active Sessions */}
+        {activeSessions.length > 0 && (
+          <motion.div variants={item} className="flex flex-col gap-3 mt-2">
+            <h3 className="text-sm font-black text-gray-800 flex items-center gap-2 px-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+              </span>
+              قفسه‌های باز شما (ناتمام)
+            </h3>
+            
+            <div className="flex flex-col gap-3">
+              {activeSessions.map((session, idx) => (
+                <div key={idx} className="bg-white border border-indigo-100 rounded-[20px] p-4 flex items-center justify-between shadow-sm shadow-indigo-100/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                      <Layers size={18} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-gray-800 tracking-widest uppercase">{session.code}</span>
+                      <span className="text-[10px] text-gray-400 font-bold mt-1">انبار: {session.warehouse || '-'}</span>
+                    </div>
+                  </div>
+                  <Link 
+                    href={`/counting/shelf?code=${session.code}&warehouse=${session.warehouse}`}
+                    className="bg-gray-900 text-white px-4 py-2.5 rounded-[12px] text-xs font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    ادامه / پایان
+                  </Link>
+                </div>
+              ))}
             </div>
-            <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-            </div>
-          </Link>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Suggested Shelves to count */}
-        {uncountedShelves.length > 0 && (
+        {settings?.show_suggested_shelves !== false && uncountedShelves.length > 0 && (
           <motion.div variants={item} className="flex flex-col gap-3 mt-4">
             <div className="flex items-center justify-between px-2">
               <h3 className="text-sm font-black text-gray-800 flex items-center gap-2">

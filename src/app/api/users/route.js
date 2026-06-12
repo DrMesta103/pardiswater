@@ -10,7 +10,6 @@ export async function GET() {
         username: true,
         mobile: true,
         roles: true,
-        role: true,
         createdAt: true,
         _count: {
           select: { countings: true }
@@ -27,7 +26,7 @@ export async function GET() {
       }
       return {
         ...user,
-        roles: Array.isArray(parsedRoles) ? parsedRoles : (user.role === 'ADMIN' ? ['ADMIN'] : ['COUNTER'])
+        roles: Array.isArray(parsedRoles) ? parsedRoles : ['COUNTER']
       };
     });
 

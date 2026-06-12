@@ -101,6 +101,24 @@ export default function UsersPage() {
           </p>
         </div>
 
+        <Link 
+          href="/admin/reports"
+          className="bg-indigo-600 text-white p-4 rounded-[20px] shadow-md hover:bg-indigo-700 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <BarChart2 size={20} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-sm">گزارشات و رتبه‌بندی پرسنل</span>
+              <span className="text-[10px] text-indigo-200 mt-0.5">کارمندان برتر، بیشترین خطا و...</span>
+            </div>
+          </div>
+          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:-translate-x-1 transition-transform">
+            <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+          </div>
+        </Link>
+
         {/* Search */}
         <div className="relative">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
