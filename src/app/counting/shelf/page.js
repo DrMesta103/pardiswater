@@ -30,7 +30,7 @@ function ShelfCountingContent() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
   const [camError, setCamError] = useState('');
 
   // History of scanned items in this session

@@ -1,51 +1,48 @@
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import axios from 'axios';
+
+const HESABFA_API_KEY = process.env.HESABFA_API_KEY || 'NCuDX3bksHlhXWGIqTvatvme3YTplxdF';
+const HESABFA_TOKEN = process.env.HESABFA_TOKEN || '4ddb2fc517f6f6fe6d4b9bdd08fa0df31a564a62e12c4353eb9533ae63447b57ca87c479beb7f02b276929c861dad779';
 
 export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const warehouse = searchParams.get('warehouse') || '11';
+
   try {
-    const url = new URL(req.url);
-    const thresholdDays = parseInt(url.searchParams.get('days')) || 10;
+    // 1. Fetch countings
+    const countings = await prisma.counting.findMany({
+      where: { warehouse: Number(warehouse), status: { not: 'CANCELLED' } }
+    });
     
-    // Calculate the cutoff date
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - thresholdDays);
+    // Get distinct product IDs that were counted
+    const countedProductIds = new Set(countings.map(c => Number(c.product_id)));
 
-    // Get all locations
-    const locations = await prisma.location.findMany({
-      select: {
-        id: true,
-        code: true,
-        warehouse: true,
-        floor: true,
-        region: true,
-        sector: true
-      }
+    // 2. Fetch all products from Hesabfa
+    const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
+      apiKey: HESABFA_API_KEY,
+      loginToken: HESABFA_TOKEN,
+      queryInfo: { Take: 2000, Skip: 0 },
+      type: 0
     });
 
-    // Get the most recent counting date for each location
-    // Prisma group by or finding max date per shelf
-    const latestCounts = await prisma.counting.groupBy({
-      by: ['shelfCode'],
-      _max: {
-        createdAt: true
-      }
-    });
+    const hesabfaItems = res.data?.Result?.List || [];
 
-    const countMap = new Map();
-    latestCounts.forEach(c => {
-      countMap.set(c.shelfCode, c._max.createdAt);
-    });
-
-    // Filter locations that have either NEVER been counted, or the latest count is older than cutoff
-    const uncounted = locations.filter(loc => {
-      const lastCountDate = countMap.get(loc.code);
-      if (!lastCountDate) return true; // Never counted
-      return new Date(lastCountDate) < cutoffDate;
+    // 3. Filter items that have Stock > 0 but are not in countedProductIds
+    const uncounted = hesabfaItems.filter(item => {
+      // Check if not counted
+      if (countedProductIds.has(item.Code)) return false;
+      
+      // Check if it has stock (assuming item.Stock or finding via another property, some accounts use item.Stock)
+      // Since getitems might not return Stock per warehouse, we assume if Stock > 0 it should have been counted.
+      const stock = Number(item.Stock) || 0;
+      return stock > 0;
     });
 
     return NextResponse.json({ uncounted });
+
   } catch (error) {
-    console.error('Fetch uncounted error:', error);
-    return NextResponse.json({ error: 'خطا در دریافت لیست قفسه‌ها' }, { status: 500 });
+    console.error('Uncounted Error:', error);
+    return NextResponse.json({ error: 'خطا در محاسبه کالاهای شمارش نشده' }, { status: 500 });
   }
 }

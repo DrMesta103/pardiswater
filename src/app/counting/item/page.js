@@ -28,7 +28,7 @@ function ItemCountingContent() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [history, setHistory] = useState([]);
   
-  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
   const [camError, setCamError] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 

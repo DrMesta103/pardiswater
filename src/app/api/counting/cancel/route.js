@@ -37,17 +37,19 @@ export async function POST(req) {
     });
 
     // 2. Unlock the location
-    await prisma.location.updateMany({
-      where: { code: shelfCode.toUpperCase(), warehouse: Number(warehouse) },
-      data: { isLocked: false, lockedById: null, lockedAt: null }
-    });
+    if (shelfCode) {
+      await prisma.location.updateMany({
+        where: { code: shelfCode.toUpperCase(), warehouse: Number(warehouse) },
+        data: { isLocked: false, lockedById: null, lockedAt: null }
+      });
+    }
 
     // 3. Log the action
     await prisma.actionLog.create({
       data: {
         userId: Number(userId),
         action: 'CANCEL_COUNTING',
-        details: `لغو شمارش ${mode === 'SHELF' ? 'قفسه' : 'کالا'} ${shelfCode.toUpperCase()} به دلیل: ${reason}`
+        details: `لغو شمارش ${mode === 'SHELF' ? 'قفسه' : 'کالا'} ${shelfCode ? shelfCode.toUpperCase() : product_id} به دلیل: ${reason}`
       }
     });
 

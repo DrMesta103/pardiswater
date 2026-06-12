@@ -7,11 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function DiscrepancyDashboard() {
   const [warehouse, setWarehouse] = useState('');
   const [warehouses, setWarehouses] = useState([]);
-  const [data, setData] = useState({ discrepancies: [], accurate: [] });
+  const [data, setData] = useState({ discrepancies: [], accurate: [], uncounted: [] });
   const [loading, setLoading] = useState(true);
   
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all'); // all, surplus (مازاد), deficit (کسری)
+  const [filter, setFilter] = useState('all'); // all, surplus (مازاد), deficit (کسری), uncounted
 
   useEffect(() => {
     fetch('/api/settings')
@@ -35,11 +35,21 @@ export default function DiscrepancyDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports/discrepancies?warehouse=${warehouse}`);
-      if (res.ok) {
-        const result = await res.json();
-        setData(result);
+      const [resDiscrepancies, resUncounted] = await Promise.all([
+        fetch(`/api/reports/discrepancies?warehouse=${warehouse}`),
+        fetch(`/api/reports/uncounted?warehouse=${warehouse}`)
+      ]);
+      
+      let finalData = { discrepancies: [], accurate: [], uncounted: [] };
+      if (resDiscrepancies.ok) {
+        const result = await resDiscrepancies.json();
+        finalData = { ...finalData, ...result };
       }
+      if (resUncounted.ok) {
+        const resultUncounted = await resUncounted.json();
+        finalData.uncounted = resultUncounted.uncounted || [];
+      }
+      setData(finalData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -52,8 +62,18 @@ export default function DiscrepancyDashboard() {
     alert(`تسک بازشماری برای کالا "${productName}" (کد: ${productId}) صادر شد.`);
   };
 
-  const filteredDiscrepancies = data.discrepancies.filter(item => {
-    const matchesSearch = item.product_name?.includes(search) || item.product_id?.toString().includes(search);
+  // We either show discrepancies or uncounted based on filter
+  const isUncountedMode = filter === 'uncounted';
+
+  let listToRender = isUncountedMode ? data.uncounted : data.discrepancies;
+
+  const filteredItems = listToRender.filter(item => {
+    const name = item.product_name || item.Name || '';
+    const id = (item.product_id || item.Code || '').toString();
+    const matchesSearch = name.includes(search) || id.includes(search);
+    
+    if (isUncountedMode) return matchesSearch;
+
     const matchesFilter = 
       filter === 'all' ? true :
       filter === 'surplus' ? item.difference > 0 :
@@ -100,24 +120,34 @@ export default function DiscrepancyDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 relative z-10">
+        <div className="grid grid-cols-3 gap-4 relative z-10">
           <div className="bg-white border border-red-100 rounded-[24px] p-5 shadow-sm flex flex-col gap-1 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-full flex items-start justify-end p-4 opacity-50 z-0">
               <AlertTriangle className="text-red-300" size={32} />
             </div>
             <div className="relative z-10">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">کالاهای دارای مغایرت</p>
-              <p className="text-3xl font-black text-red-600">{loading ? '-' : data.discrepancies.length}</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">مغایرت‌دار</p>
+              <p className="text-2xl font-black text-red-600">{loading ? '-' : data.discrepancies.length}</p>
             </div>
           </div>
           
+          <div className="bg-white border border-orange-100 rounded-[24px] p-5 shadow-sm flex flex-col gap-1 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-full flex items-start justify-end p-4 opacity-50 z-0">
+              <PackageSearch className="text-orange-300" size={32} />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">شمارش‌نشده</p>
+              <p className="text-2xl font-black text-orange-500">{loading ? '-' : data.uncounted.length}</p>
+            </div>
+          </div>
+
           <div className="bg-white border border-green-100 rounded-[24px] p-5 shadow-sm flex flex-col gap-1 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full flex items-start justify-end p-4 opacity-50 z-0">
               <CheckCircle className="text-green-300" size={32} />
             </div>
             <div className="relative z-10">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">کالاهای بدون مغایرت</p>
-              <p className="text-3xl font-black text-green-600">{loading ? '-' : data.accurate.length}</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">صحیح</p>
+              <p className="text-2xl font-black text-green-600">{loading ? '-' : data.accurate.length}</p>
             </div>
           </div>
         </div>
@@ -135,7 +165,7 @@ export default function DiscrepancyDashboard() {
             />
           </div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-            {['all', 'surplus', 'deficit'].map(f => (
+            {['all', 'surplus', 'deficit', 'uncounted'].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -145,80 +175,99 @@ export default function DiscrepancyDashboard() {
                   : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {f === 'all' ? 'همه موارد' : f === 'surplus' ? 'مازاد (اضافه)' : 'کسری'}
+                {f === 'all' ? 'همه مغایرت‌ها' : f === 'surplus' ? 'مازاد' : f === 'deficit' ? 'کسری' : 'شمارش‌نشده'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Discrepancies List (Card Based) */}
+        {/* Discrepancies / Uncounted List */}
         <div className="flex flex-col gap-4 mt-2">
           <div className="flex items-center gap-2 px-2">
-            <PackageSearch className="text-red-500" size={20} strokeWidth={2.5} />
-            <h3 className="font-black text-gray-800 text-sm">لیست کالا‌های نیازمند بررسی</h3>
+            <PackageSearch className={isUncountedMode ? "text-orange-500" : "text-red-500"} size={20} strokeWidth={2.5} />
+            <h3 className="font-black text-gray-800 text-sm">
+              {isUncountedMode ? 'لیست کالاهای شمارش‌نشده' : 'لیست کالا‌های نیازمند بررسی'}
+            </h3>
             <span className="bg-gray-200 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-bold mr-auto">
-              {filteredDiscrepancies.length} مورد
+              {filteredItems.length} مورد
             </span>
           </div>
 
           <div className="flex flex-col gap-3">
             <AnimatePresence>
-              {filteredDiscrepancies.map((item, idx) => (
+              {filteredItems.map((item, idx) => {
+                const isUncounted = isUncountedMode;
+                const pName = isUncounted ? item.Name : item.product_name;
+                const pId = isUncounted ? item.Code : item.product_id;
+                
+                return (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  key={`${item.product_id}-${idx}`}
+                  key={`${pId}-${idx}`}
                   className="bg-white rounded-[20px] shadow-sm border border-gray-100 p-5 flex flex-col gap-4"
                 >
                   {/* Top: Product Info & Badge */}
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col pr-1">
-                      <h4 className="font-bold text-gray-800 text-sm leading-snug">{item.product_name}</h4>
-                      <p className="text-[10px] text-gray-400 mt-1 font-medium tracking-wider">کد حسابفا: {item.product_id}</p>
+                      <h4 className="font-bold text-gray-800 text-sm leading-snug">{pName}</h4>
+                      <p className="text-[10px] text-gray-400 mt-1 font-medium tracking-wider">کد حسابفا: {pId}</p>
                     </div>
-                    <div className={`flex items-center gap-1 px-3 py-1.5 rounded-[10px] text-xs font-black shadow-sm shrink-0 mr-3 ${item.difference > 0 ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                      {item.difference > 0 ? <ArrowUpRight size={14} strokeWidth={3} /> : <ArrowDownRight size={14} strokeWidth={3} />}
-                      {Math.abs(item.difference)}
-                    </div>
+                    {!isUncounted && (
+                      <div className={`flex items-center gap-1 px-3 py-1.5 rounded-[10px] text-xs font-black shadow-sm shrink-0 mr-3 ${item.difference > 0 ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                        {item.difference > 0 ? <ArrowUpRight size={14} strokeWidth={3} /> : <ArrowDownRight size={14} strokeWidth={3} />}
+                        {Math.abs(item.difference)}
+                      </div>
+                    )}
+                    {isUncounted && (
+                      <div className="flex items-center gap-1 px-3 py-1.5 rounded-[10px] text-xs font-black shadow-sm shrink-0 mr-3 bg-orange-50 text-orange-600 border border-orange-100">
+                        موجودی: {item.Stock}
+                      </div>
+                    )}
                   </div>
 
                   {/* Middle: Stats */}
-                  <div className="flex items-center bg-gray-50 rounded-[16px] p-3 border border-gray-100">
-                    <div className="flex-1 flex flex-col items-center border-l border-gray-200">
-                      <span className="text-[10px] font-bold text-gray-400 mb-0.5">موجودی سیستم</span>
-                      <span className="text-lg font-black text-gray-600">{item.system_expected}</span>
+                  {!isUncounted && (
+                    <div className="flex items-center bg-gray-50 rounded-[16px] p-3 border border-gray-100">
+                      <div className="flex-1 flex flex-col items-center border-l border-gray-200">
+                        <span className="text-[10px] font-bold text-gray-400 mb-0.5">موجودی سیستم</span>
+                        <span className="text-lg font-black text-gray-600">{item.system_expected}</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center border-l border-gray-200">
+                        <span className="text-[10px] font-bold text-gray-400 mb-0.5">شمارش شما</span>
+                        <span className="text-lg font-black text-gray-900">{item.total_counted}</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-gray-400 mb-0.5">قفسه‌ها</span>
+                        <span className="text-xs font-bold text-indigo-600 mt-1.5 line-clamp-1 text-center px-1">
+                          {item.locations?.length > 0 ? item.locations.join('، ') : '-'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1 flex flex-col items-center border-l border-gray-200">
-                      <span className="text-[10px] font-bold text-gray-400 mb-0.5">شمارش شما</span>
-                      <span className="text-lg font-black text-gray-900">{item.total_counted}</span>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-gray-400 mb-0.5">قفسه‌ها</span>
-                      <span className="text-xs font-bold text-indigo-600 mt-1.5 line-clamp-1 text-center px-1">
-                        {item.locations.length > 0 ? item.locations.join('، ') : '-'}
-                      </span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Bottom: Actions */}
                   <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-50 mt-1">
                     <button 
-                      onClick={() => handleRecount(item.product_id, item.product_name)}
+                      onClick={() => handleRecount(pId, pName)}
                       className="bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white px-4 py-2.5 rounded-[14px] text-xs font-bold transition-colors flex-1 text-center"
                     >
                       ارجاع بازشماری
                     </button>
-                    <button className="bg-gray-900 text-white hover:bg-gray-800 px-4 py-2.5 rounded-[14px] text-xs font-bold transition-colors flex items-center justify-center gap-1.5 flex-1 shadow-md">
-                      <Send size={14} />
-                      ارسال تعدیل
-                    </button>
+                    {!isUncounted && (
+                      <button className="bg-gray-900 text-white hover:bg-gray-800 px-4 py-2.5 rounded-[14px] text-xs font-bold transition-colors flex items-center justify-center gap-1.5 flex-1 shadow-md">
+                        <Send size={14} />
+                        ارسال تعدیل
+                      </button>
+                    )}
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
 
-            {filteredDiscrepancies.length === 0 && !loading && (
+            {filteredItems.length === 0 && !loading && (
               <div className="bg-white rounded-[24px] border border-dashed border-gray-300 flex flex-col items-center justify-center p-10 text-center gap-3">
                 <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
                   <CheckCircle size={32} />
@@ -231,7 +280,7 @@ export default function DiscrepancyDashboard() {
             {loading && (
               <div className="bg-white rounded-[24px] border border-gray-100 flex flex-col items-center justify-center p-10 text-center gap-3">
                 <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm font-bold text-gray-500">در حال بررسی و مقایسه اطلاعات...</p>
+                <p className="text-sm font-bold text-gray-500">در حال بررسی و استخراج اطلاعات...</p>
               </div>
             )}
           </div>
