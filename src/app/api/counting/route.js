@@ -13,9 +13,9 @@ export async function POST(req) {
       });
     }
     
-    const count = await prisma.counting.create({
-      data: {
-        product_id: Number(data.product_id),
+      const count = await prisma.counting.create({
+        data: {
+          product_id: String(data.product_id),
         product_name: data.product_name,
         warehouse: Number(data.warehouse),
         shelfCode: data.shelfCode ? data.shelfCode.toUpperCase() : null,
@@ -43,7 +43,7 @@ export async function GET(req) {
   try {
     if (productId && warehouse) {
       const lastCount = await prisma.counting.findFirst({
-        where: { product_id: Number(productId), warehouse: Number(warehouse) },
+        where: { product_id: String(productId), warehouse: Number(warehouse) },
         orderBy: { createdAt: 'desc' }
       });
       return NextResponse.json(lastCount || { message: -1 });

@@ -16,18 +16,26 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(false);
   const [lockError, setLockError] = useState('');
   const [warehouses, setWarehouses] = useState([]);
+  const [settings, setSettings] = useState(null);
   const router = useRouter();
   
   useEffect(() => {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
+        setSettings(data);
         if (data.warehouses) {
           setWarehouses(data.warehouses);
           if (data.warehouses.length > 0) {
             setWarehouse(data.warehouses[0].id);
           }
         }
+        
+        const shelfEnabled = data.enable_shelf_counting ?? true;
+        const itemEnabled = data.enable_item_counting ?? true;
+        
+        if (shelfEnabled && !itemEnabled) setMode('SHELF');
+        if (!shelfEnabled && itemEnabled) setMode('ITEM');
       });
   }, []);
 
@@ -90,20 +98,29 @@ export default function ScanPage() {
         
         {/* Mode Switcher */}
         <div className="w-full bg-white p-1.5 rounded-[20px] shadow-sm flex mb-6 border border-gray-100">
-          <button 
-            onClick={() => { setMode('ITEM'); setCode(''); setLockError(''); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-bold transition-all ${mode === 'ITEM' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <Box size={16} />
-            بر اساس کالا
-          </button>
-          <button 
-            onClick={() => { setMode('SHELF'); setCode(''); setLockError(''); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-bold transition-all ${mode === 'SHELF' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <LayoutGrid size={16} />
-            بر اساس قفسه
-          </button>
+          {(settings?.enable_item_counting ?? true) && (
+            <button 
+              onClick={() => { setMode('ITEM'); setCode(''); setLockError(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-bold transition-all ${mode === 'ITEM' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <Box size={16} />
+              بر اساس کالا
+            </button>
+          )}
+          {(settings?.enable_shelf_counting ?? true) && (
+            <button 
+              onClick={() => { setMode('SHELF'); setCode(''); setLockError(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[16px] text-xs font-bold transition-all ${mode === 'SHELF' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <LayoutGrid size={16} />
+              بر اساس قفسه
+            </button>
+          )}
+          {!(settings?.enable_item_counting ?? true) && !(settings?.enable_shelf_counting ?? true) && (
+            <div className="flex-1 py-3 text-center text-xs font-bold text-red-500">
+              تمامی حالت‌های انبارگردانی غیرفعال شده‌اند
+            </div>
+          )}
         </div>
 
         {/* Camera Area */}

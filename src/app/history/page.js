@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { hasRole } from '@/lib/auth';
-import { Edit2, Check, X, Box, Layers, User, Save } from 'lucide-react';
+import { Edit2, Check, X, Box, Layers, User, Save, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function HistoryPage() {

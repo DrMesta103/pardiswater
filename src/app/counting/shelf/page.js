@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
-import { Lock, Unlock, ScanLine, Search, Check, Box, Layers, AlertCircle, X } from 'lucide-react';
+import { Lock, Unlock, ScanLine, Search, Check, Box, Layers, AlertCircle, X, History } from 'lucide-react';
 import { hasRole } from '@/lib/auth';
 import { saveCountOffline, syncOfflineCounts } from '@/lib/offlineSync';
 import dynamic from 'next/dynamic';
@@ -20,7 +20,6 @@ function ShelfCountingContent() {
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Item scanning state
   const [productCode, setProductCode] = useState('');
   const [productName, setProductName] = useState('');
   const [oldCount, setOldCount] = useState(null);
@@ -33,8 +32,9 @@ function ShelfCountingContent() {
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [camError, setCamError] = useState('');
 
-  // History of scanned items in this session
   const [history, setHistory] = useState([]);
+  
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -52,11 +52,7 @@ function ShelfCountingContent() {
         const data = await res.json();
         setSettings(data);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) {} finally { setLoading(false); }
   };
 
   const handleFinishShelf = async () => {
@@ -76,7 +72,7 @@ function ShelfCountingContent() {
   const fetchItemData = async (codeToFetch) => {
     const code = codeToFetch || productCode;
     if (!code) {
-      setErrorMsg('کد کالا را وارد کنید');
+      setErrorMsg('لطفاً کد کالا را وارد کنید');
       return;
     }
     
@@ -85,6 +81,7 @@ function ShelfCountingContent() {
     setProductName('');
     setOldCount(null);
     setNewCount('');
+    setProductCode(code);
     
     try {
       const nameRes = await fetch('/api/hesabfa', {
@@ -95,7 +92,7 @@ function ShelfCountingContent() {
       const nameData = await nameRes.json();
       
       if (!nameData?.Result?.Name || nameData?.Result?.Name === 'نامشخص' || nameData.error) {
-        setErrorMsg('کالایی با این کد در حسابفا یافت نشد.');
+        setErrorMsg(`کالایی با کد ${code} در حسابفا یافت نشد.`);
         setItemLoading(false);
         return;
       }
@@ -109,20 +106,31 @@ function ShelfCountingContent() {
       });
       const qData = await qRes.json();
       const productInfo = qData?.Result?.[0];
-      const wInfo = productInfo?.Warehouse?.find(w => w.Code === Number(warehouse));
-      setOldCount(wInfo?.Quantity ?? 0);
+      
+      let foundStock = 0;
+      if (productInfo) {
+         if (productInfo.StockByWarehouse && Array.isArray(productInfo.StockByWarehouse)) {
+            const wInfo = productInfo.StockByWarehouse.find(w => w.WarehouseCode === Number(warehouse) || w.Code === Number(warehouse));
+            if (wInfo) foundStock = wInfo.Stock || wInfo.Quantity || 0;
+            else foundStock = productInfo.Stock || productInfo.Quantity || 0;
+         } else if (productInfo.Warehouse && Array.isArray(productInfo.Warehouse)) {
+            const wInfo = productInfo.Warehouse.find(w => w.Code === Number(warehouse));
+            foundStock = wInfo?.Quantity ?? productInfo.Stock ?? productInfo.Quantity ?? 0;
+         } else {
+            foundStock = productInfo.Stock ?? productInfo.Quantity ?? 0;
+         }
+      }
+      setOldCount(foundStock);
+      
+      if (inputRef.current) {
+        setTimeout(() => inputRef.current.focus(), 100);
+      }
     } catch (error) {
       console.error(error);
-      setErrorMsg('خطا در ارتباط با حسابفا');
+      setErrorMsg('خطا در ارتباط با حسابفا. لطفاً دوباره تلاش کنید.');
     } finally {
       setItemLoading(false);
     }
-  };
-
-  const handleProductCodeChange = (e) => {
-    setProductCode(e.target.value);
-    setErrorMsg('');
-    setProductName('');
   };
 
   const handleProductCodeKeyDown = (e) => {
@@ -134,20 +142,18 @@ function ShelfCountingContent() {
   const handleScan = (detectedCodes) => {
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedValue = detectedCodes[0].rawValue;
-      setProductCode(scannedValue);
-      setCameraEnabled(false);
+      // We DO NOT turn off the camera. Just fetch!
       setCamError('');
-      fetchItemData(scannedValue);
+      if (scannedValue !== productCode) {
+        fetchItemData(scannedValue);
+      }
     }
   };
 
   const handleError = (error) => {
     const msg = error?.message || error?.name || '';
-    if (msg.includes('Requested device not found')) {
-      setCamError('دوربینی یافت نشد.');
-    } else {
-      setCamError('خطا در دسترسی به دوربین.');
-    }
+    if (msg.includes('Requested device not found')) setCamError('دوربینی یافت نشد.');
+    else setCamError('خطا در دسترسی به دوربین.');
   };
 
   const handleSubmitItem = async () => {
@@ -163,9 +169,9 @@ function ShelfCountingContent() {
     setSubmitLoading(true);
     
     const payload = {
-      product_id: productCode,
+      product_id: String(productCode),
       product_name: productName,
-      warehouse,
+      warehouse: Number(warehouse),
       shelfCode: shelfCode.toUpperCase(),
       old_count: oldCount || 0,
       new_count: Number(newCount),
@@ -188,12 +194,11 @@ function ShelfCountingContent() {
         setNewCount('');
         setErrorMsg('');
       } else {
-        setErrorMsg('خطا در ثبت شمارش کالا در سرور');
+        setErrorMsg('خطا در ثبت شمارش در سرور');
       }
     } catch (err) {
-      // Network error (offline or server down)
       await saveCountOffline(payload);
-      alert('ارتباط با سرور قطع است. اطلاعات در گوشی شما ذخیره شد و به محض اتصال ارسال می‌شود.');
+      alert('ارتباط با سرور قطع است. شمارش ذخیره شد و پس از اتصال ارسال می‌شود.');
       setHistory([{ code: productCode, name: productName, count: newCount, offline: true }, ...history]);
       setProductCode('');
       setProductName('');
@@ -238,184 +243,161 @@ function ShelfCountingContent() {
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
       <Header title="انبارگردانی قفسه" showBack={true} />
       
-      {/* Top Banner */}
-      <div className="bg-indigo-600 text-white px-5 py-4 flex items-center justify-between shadow-md">
+      {/* Top Fixed Info Bar */}
+      <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-            <Layers size={20} />
+          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center font-black">
+            {shelfCode}
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-indigo-200 font-bold mb-0.5 tracking-wider">در حال شمارش قفسه</span>
-            <span className="text-xl font-black tracking-widest uppercase">{shelfCode}</span>
+            <span className="text-[10px] text-gray-400 font-bold tracking-wider">قفسه جاری</span>
+            <span className="text-xs font-black text-gray-800">آماده اسکن کالای بعدی</span>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           <button 
             onClick={handleCancelShelf}
-            className="bg-red-500/20 hover:bg-red-500/40 text-red-100 text-xs font-black py-2.5 px-3 rounded-[14px] transition-colors flex items-center gap-1 backdrop-blur-sm"
+            className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-[14px] transition-colors"
           >
-            <X size={14} strokeWidth={3} />
-            لغو
+            <X size={18} strokeWidth={2.5} />
           </button>
           <button 
             onClick={handleFinishShelf}
-            className="bg-white/20 hover:bg-white/30 text-white text-xs font-black py-2.5 px-4 rounded-[14px] transition-colors flex items-center gap-2 backdrop-blur-sm shadow-sm"
+            className="bg-gray-900 hover:bg-gray-800 text-white text-xs font-black py-2.5 px-4 rounded-[14px] transition-colors flex items-center gap-2"
           >
-            <Unlock size={14} strokeWidth={3} />
+            <Check size={14} strokeWidth={3} />
             پایان قفسه
           </button>
         </div>
       </div>
 
-      <div className="flex-1 p-4 md:p-6 max-w-md mx-auto w-full flex flex-col gap-6 mt-2">
+      <div className="flex-1 p-4 flex flex-col gap-5 max-w-md mx-auto w-full mt-2">
         
-        {/* Scanner Form */}
-        <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-16 h-16 bg-blue-50/50 rounded-br-full -z-0"></div>
+        {/* Continuous Scanner Area */}
+        <div className="bg-white rounded-[24px] p-2 shadow-sm border border-gray-100 flex flex-col relative overflow-hidden">
+          <div className="w-full aspect-video relative flex items-center justify-center bg-gray-900 rounded-[20px] overflow-hidden">
+            {camError ? (
+              <div className="text-red-400 text-xs p-4 text-center font-medium">{camError}</div>
+            ) : cameraEnabled ? (
+              <>
+                <div className="w-full h-full opacity-80 [&>div]:!object-cover [&>div>video]:!object-cover">
+                  <Scanner onScan={handleScan} onError={handleError} />
+                </div>
+                {/* Scanner Overlay UI */}
+                <div className="absolute inset-0 pointer-events-none border-[3px] border-indigo-500/30 m-4 rounded-[16px]">
+                  <div className="absolute top-1/2 left-0 w-full h-[2px] bg-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
+                </div>
+              </>
+            ) : (
+              <button onClick={() => setCameraEnabled(true)} className="flex flex-col items-center gap-2 text-gray-400">
+                <ScanLine size={32} />
+                <span className="text-xs font-bold">فعال‌سازی مجدد دوربین</span>
+              </button>
+            )}
+          </div>
           
-          <h3 className="text-sm font-bold text-gray-800 relative z-10 flex items-center gap-2">
-            <ScanLine className="text-indigo-600" size={18} />
-            اسکن کالای جدید در این قفسه
-          </h3>
-
-          {errorMsg && (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 relative z-10">
-              <AlertCircle size={14} className="shrink-0" />
-              {errorMsg}
-            </div>
-          )}
-          
-          <div className="flex flex-col gap-3 relative z-10">
-            <div className="flex gap-2">
-              <input 
-                type="number" 
-                dir="ltr"
-                value={productCode}
-                onChange={handleProductCodeChange}
-                onKeyDown={handleProductCodeKeyDown}
-                placeholder="بارکد یا کد کالا..."
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3.5 text-lg font-bold text-gray-800 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-center placeholder:text-sm placeholder:font-normal placeholder:text-gray-400"
-              />
-              <motion.button 
-                whileTap={{ scale: 0.95 }}
-                onClick={() => fetchItemData()}
-                disabled={itemLoading || !productCode}
-                className="w-14 bg-indigo-50 text-indigo-600 rounded-[16px] flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors border border-indigo-100 disabled:opacity-50"
-              >
-                {itemLoading ? <div className="w-5 h-5 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></div> : <Search size={20} strokeWidth={2.5} />}
-              </motion.button>
-              <motion.button 
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCameraEnabled(true)}
-                className="w-14 bg-gray-900 text-white rounded-[16px] flex items-center justify-center shrink-0 shadow-md transition-colors"
-              >
-                <ScanLine size={20} strokeWidth={2.5} />
-              </motion.button>
-            </div>
-
-            <AnimatePresence>
-              {cameraEnabled && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="w-full aspect-video relative flex flex-col items-center justify-center bg-black overflow-hidden rounded-[16px]"
-                >
-                  {camError ? (
-                    <div className="text-red-400 text-xs p-4 text-center font-medium">{camError}</div>
-                  ) : (
-                    <div className="w-full h-full [&>div]:!object-cover [&>div>video]:!object-cover">
-                      <Scanner onScan={handleScan} onError={handleError} />
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => { setCameraEnabled(false); setCamError(''); }}
-                    className="absolute top-2 right-2 bg-white/20 backdrop-blur-md p-1.5 rounded-full text-white pointer-events-auto"
-                  >
-                    <X size={16} strokeWidth={3} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Product Details & Count input (only shown if valid product found) */}
-            <AnimatePresence>
-              {productName && !itemLoading && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 pt-4 border-t border-gray-100 flex flex-col gap-4"
-                >
-                  <div className="flex justify-between items-start bg-indigo-50/50 p-3 rounded-[16px] border border-indigo-50">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-indigo-500 shadow-sm shrink-0">
-                        <Box size={16} />
-                      </div>
-                      <div className="flex flex-col">
-                        <h3 className="font-bold text-gray-800 text-sm leading-tight">{productName}</h3>
-                        <p className="text-[10px] text-gray-500 mt-1 font-medium">کد حسابفا: {productCode}</p>
-                      </div>
-                    </div>
-                    {!isBlind && oldCount !== null && (
-                      <div className="bg-white border border-gray-100 text-indigo-600 px-3 py-1.5 rounded-xl flex flex-col items-center shadow-sm shrink-0 ml-1">
-                        <span className="text-sm font-black">{oldCount}</span>
-                        <span className="text-[9px] font-bold text-gray-400">موجودی سیستم</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <input 
-                      type="number" 
-                      dir="ltr"
-                      value={newCount}
-                      onChange={(e) => { setNewCount(e.target.value); setErrorMsg(''); }}
-                      placeholder="تعداد شمارش شده را وارد کنید..."
-                      className="w-full border-2 border-gray-200 bg-white rounded-[16px] p-4 text-center text-2xl font-black text-gray-800 focus:outline-none focus:border-indigo-500 transition-all placeholder:text-sm placeholder:font-medium placeholder:text-gray-300"
-                    />
-                    <button 
-                      onClick={handleSubmitItem}
-                      disabled={submitLoading || !newCount}
-                      className="w-full bg-indigo-600 text-white py-4 rounded-[16px] shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-all disabled:opacity-50 text-sm font-black flex items-center justify-center gap-2"
-                    >
-                      {submitLoading ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <>ثبت شمارش</>
-                      )}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="flex items-center gap-2 mt-3 px-2 pb-2">
+            <input 
+              type="text" 
+              dir="ltr"
+              value={productCode}
+              onChange={(e) => { setProductCode(e.target.value); setErrorMsg(''); setProductName(''); }}
+              onKeyDown={handleProductCodeKeyDown}
+              placeholder="یا بارکد را اینجا تایپ کنید..."
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 text-center placeholder:font-normal"
+            />
+            <button 
+              onClick={() => fetchItemData()}
+              disabled={itemLoading || !productCode}
+              className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors border border-indigo-100 disabled:opacity-50"
+            >
+              {itemLoading ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></div> : <Search size={18} strokeWidth={2.5} />}
+            </button>
           </div>
         </div>
 
+        {/* Error Message */}
+        <AnimatePresence>
+          {errorMsg && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-[16px] text-xs font-bold flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0" />
+              {errorMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Product Details & Count input (only shown if valid product found) */}
+        <AnimatePresence>
+          {productName && !itemLoading && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-[24px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-indigo-50 flex flex-col gap-4 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -z-0"></div>
+              
+              <div className="flex justify-between items-start relative z-10">
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-black text-gray-800 text-lg leading-tight">{productName}</h3>
+                  <p className="text-xs text-gray-400 font-bold tracking-wider">کد حسابفا: {productCode}</p>
+                </div>
+                {!isBlind && oldCount !== null && (
+                  <div className="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-xl flex flex-col items-center shadow-sm shrink-0 ml-1 border border-indigo-100">
+                    <span className="text-sm font-black">{oldCount}</span>
+                    <span className="text-[9px] font-bold opacity-70">موجودی سیستم</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3 relative z-10 mt-2">
+                <input 
+                  ref={inputRef}
+                  type="number" 
+                  dir="ltr"
+                  value={newCount}
+                  onChange={(e) => { setNewCount(e.target.value); setErrorMsg(''); }}
+                  placeholder="0"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-[16px] p-4 text-center text-3xl font-black text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all placeholder:text-gray-300"
+                />
+                <button 
+                  onClick={handleSubmitItem}
+                  disabled={submitLoading || !newCount}
+                  className="w-full bg-indigo-600 text-white py-4 rounded-[16px] shadow-md hover:bg-indigo-700 transition-all disabled:opacity-50 text-sm font-black flex items-center justify-center gap-2"
+                >
+                  {submitLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>ثبت موجودی</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* History of this session */}
         {history.length > 0 && (
-          <div className="flex flex-col gap-3 mt-2">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider px-2">کالاهای ثبت شده تا الان</h3>
-            <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mt-4">
+            <h3 className="text-xs font-black text-gray-400 flex items-center gap-2 px-2">
+              <History size={14} />
+              تاریخچه شمارش‌های شما در این قفسه
+            </h3>
+            <div className="flex flex-col gap-2">
               {history.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white p-4 rounded-[20px] shadow-sm border border-gray-100 relative overflow-hidden">
-                  {item.offline && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>
-                  )}
+                <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-[16px] border border-gray-100 relative overflow-hidden">
+                  {item.offline && <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>}
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100">
-                      <Box size={18} className="text-gray-400" />
+                    <div className="w-8 h-8 bg-green-50 rounded-[10px] flex items-center justify-center text-green-500 shrink-0">
+                      <Check size={16} strokeWidth={3} />
                     </div>
                     <div className="flex flex-col">
                       <p className="text-xs font-bold text-gray-800 line-clamp-1">{item.name}</p>
-                      <p className="text-[10px] font-medium text-gray-400 mt-0.5">کد: {item.code}</p>
+                      <p className="text-[9px] font-bold text-gray-400 mt-0.5">کد: {item.code}</p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end shrink-0 pl-1">
-                    <span className="text-[10px] font-bold text-gray-400 mb-0.5">شمارش شما</span>
-                    <span className="text-lg font-black text-indigo-600">
-                      {item.count}
-                    </span>
+                  <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                    <span className="text-sm font-black text-gray-800">{item.count}</span>
                   </div>
                 </div>
               ))}

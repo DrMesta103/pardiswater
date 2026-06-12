@@ -59,7 +59,7 @@ model Location {
 
 model Counting {
   id           Int       @id @default(autoincrement())
-  product_id   Int
+  product_id   String
   product_name String
   warehouse    Int
   

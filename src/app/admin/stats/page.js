@@ -11,7 +11,11 @@ export default function AdminStats() {
     fetch('/api/admin/stats')
       .then(res => res.json())
       .then(data => {
-        setStats(data);
+        if (Array.isArray(data)) {
+          setStats(data);
+        } else {
+          setStats([]);
+        }
         setLoading(false);
       });
   }, []);

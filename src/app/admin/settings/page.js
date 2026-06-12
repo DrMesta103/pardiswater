@@ -147,6 +147,36 @@ export default function SettingsPage() {
             </button>
           </div>
 
+          {/* Enable Counting Modes */}
+          <div className="border-t border-gray-50 pt-8 flex flex-col gap-5">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-[12px] bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Check size={16} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-sm font-bold text-gray-800">حالت‌های انبارگردانی</h2>
+            </div>
+            
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs text-gray-500 leading-relaxed font-bold">انبارگردانی قفسه‌ای</p>
+              <button 
+                onClick={() => setSettings(s => ({ ...s, enable_shelf_counting: s.enable_shelf_counting === undefined ? true : !s.enable_shelf_counting }))}
+                className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none ${(settings.enable_shelf_counting ?? true) ? 'bg-blue-600' : 'bg-gray-200'}`}
+              >
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${(settings.enable_shelf_counting ?? true) ? '-translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs text-gray-500 leading-relaxed font-bold">انبارگردانی کالایی</p>
+              <button 
+                onClick={() => setSettings(s => ({ ...s, enable_item_counting: s.enable_item_counting === undefined ? true : !s.enable_item_counting }))}
+                className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none ${(settings.enable_item_counting ?? true) ? 'bg-blue-600' : 'bg-gray-200'}`}
+              >
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${(settings.enable_item_counting ?? true) ? '-translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+
           {/* Correction Roles Setting */}
           <div>
             <div className="flex items-center gap-2 mb-2">

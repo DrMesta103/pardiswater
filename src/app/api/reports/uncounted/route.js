@@ -16,7 +16,7 @@ export async function GET(req) {
     });
     
     // Get distinct product IDs that were counted
-    const countedProductIds = new Set(countings.map(c => Number(c.product_id)));
+    const countedProductIds = new Set(countings.map(c => String(c.product_id)));
 
     // 2. Fetch all products from Hesabfa
     const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
@@ -31,7 +31,7 @@ export async function GET(req) {
     // 3. Filter items that have Stock > 0 but are not in countedProductIds
     const uncounted = hesabfaItems.filter(item => {
       // Check if not counted
-      if (countedProductIds.has(item.Code)) return false;
+      if (countedProductIds.has(String(item.Code))) return false;
       
       // Check if it has stock (assuming item.Stock or finding via another property, some accounts use item.Stock)
       // Since getitems might not return Stock per warehouse, we assume if Stock > 0 it should have been counted.

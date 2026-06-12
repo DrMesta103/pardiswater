@@ -30,7 +30,7 @@ export default function RootLayout({ children }) {
             </div>
             <div className="w-full py-4 text-center mt-auto">
               <p className="text-[9px] font-bold text-gray-300 dir-ltr tracking-widest uppercase">
-                Designed & Developed by <span className="text-indigo-300">DrMesta</span>
+                <span className="text-indigo-300">HOUKA</span>
               </p>
               <p className="text-[8px] font-bold text-gray-200 mt-1">App v1.4.0</p>
             </div>
