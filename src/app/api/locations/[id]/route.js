@@ -26,7 +26,7 @@ export async function PUT(req, { params }) {
   try {
     const { id: idParam } = await params;
     const id = parseInt(idParam, 10);
-    const { code } = await req.json();
+    const { code, warehouse } = await req.json();
 
     const location = await prisma.location.findUnique({
       where: { id },
@@ -45,10 +45,11 @@ export async function PUT(req, { params }) {
     const [, floor, regionStr, sector, rowStr] = match;
     const region = parseInt(regionStr, 10);
     const row = parseInt(rowStr, 10);
+    const warehouseId = warehouse ? parseInt(warehouse, 10) : null;
 
     const updated = await prisma.location.update({
       where: { id },
-      data: { code: code.toUpperCase(), floor, region, sector, row }
+      data: { code: code.toUpperCase(), floor, region, sector, row, warehouse: warehouseId }
     });
 
     return NextResponse.json({ success: true, location: updated });

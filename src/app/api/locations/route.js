@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const { code } = await req.json(); // "C2F2"
+    const { code, warehouse } = await req.json(); // "C2F2", 11
     
     // Pattern validation (e.g., C2F2 -> 1 Char, 1 Num, 1 Char, 1 Num)
     const regex = /^([A-Za-z]+)(\d+)([A-Za-z]+)(\d+)$/;
@@ -28,16 +28,18 @@ export async function POST(req) {
     const [, floor, regionStr, sector, rowStr] = match;
     const region = parseInt(regionStr, 10);
     const row = parseInt(rowStr, 10);
+    const warehouseId = warehouse ? parseInt(warehouse, 10) : null;
 
     const location = await prisma.location.upsert({
       where: { code: code.toUpperCase() },
-      update: {}, // if exists, do nothing or update timestamps
+      update: { warehouse: warehouseId }, // if exists, do nothing or update timestamps
       create: {
         code: code.toUpperCase(),
         floor,
         region,
         sector,
-        row
+        row,
+        warehouse: warehouseId
       }
     });
 

@@ -53,6 +53,7 @@ model Location {
   region    Int      
   sector    String   
   row       Int      
+  warehouse Int?       
   countings Counting[]
   isLocked   Boolean   @default(false)
   lockedById Int?

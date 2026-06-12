@@ -8,6 +8,8 @@ const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod
 
 export default function AdminLocations() {
   const [locations, setLocations] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [newCode, setNewCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -26,7 +28,23 @@ export default function AdminLocations() {
 
   useEffect(() => {
     fetchLocations();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setWarehouses(data.warehouses || []);
+        if (data.warehouses?.length > 0) {
+          setSelectedWarehouse(data.warehouses[0].id);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchLocations = async () => {
     try {
@@ -42,6 +60,10 @@ export default function AdminLocations() {
   const handleAddOrEdit = async (codeValue) => {
     const targetCode = editingId ? editCode : (codeValue || newCode);
     if (!targetCode) return;
+    if (!selectedWarehouse) {
+      showToast('لطفاً ابتدا انبار را انتخاب کنید', true);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -51,7 +73,7 @@ export default function AdminLocations() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: targetCode })
+        body: JSON.stringify({ code: targetCode, warehouse: selectedWarehouse })
       });
       
       const data = await res.json();
@@ -134,6 +156,17 @@ export default function AdminLocations() {
               </button>
             )}
           </div>
+          
+          <select
+            value={selectedWarehouse}
+            onChange={(e) => setSelectedWarehouse(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+          >
+            <option value="" disabled>انبار را انتخاب کنید...</option>
+            {warehouses.map(wh => (
+              <option key={wh.id} value={wh.id}>{wh.name} (کد: {wh.id})</option>
+            ))}
+          </select>
           
           <div className="flex gap-2">
             <input 
@@ -239,7 +272,7 @@ export default function AdminLocations() {
                     <div className="flex flex-col">
                       <span className="font-black text-lg text-gray-800 tracking-wide uppercase">{loc.code}</span>
                       <span className="text-[10px] text-gray-400 font-bold mt-0.5">
-                        طبقه {loc.floor} • منطقه {loc.region} • قطاع {loc.sector}
+                        {loc.warehouse ? `انبار: ${loc.warehouse} • ` : ''}طبقه {loc.floor} • منطقه {loc.region} • قطاع {loc.sector}
                       </span>
                     </div>
                   </div>

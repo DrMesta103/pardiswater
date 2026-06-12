@@ -26,6 +26,16 @@ export async function POST(req) {
       return NextResponse.json(res.data);
     }
 
+    if (type === 'all') {
+      const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
+        apiKey: HESABFA_API_KEY,
+        loginToken: HESABFA_TOKEN,
+        queryInfo: { Take: 2000, Skip: 0 },
+        type: 0
+      });
+      return NextResponse.json(res.data);
+    }
+
     return NextResponse.json({ error: 'نوع درخواست نامعتبر است' }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ error: 'خطا در ارتباط با حسابفا' }, { status: 500 });
