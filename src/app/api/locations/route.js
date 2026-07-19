@@ -1,51 +1,65 @@
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(req) {
   try {
+    const { searchParams } = new URL(req.url);
+    const parentId = searchParams.get('parentId');
+    
+    let where = {};
+    if (parentId === 'null' || !parentId) {
+      where.parentId = null;
+    } else {
+      where.parentId = parseInt(parentId, 10);
+    }
+
     const locations = await prisma.location.findMany({
-      include: { _count: { select: { countings: true } } },
-      orderBy: [{ floor: 'asc' }, { region: 'asc' }, { sector: 'asc' }, { row: 'asc' }]
+      where,
+      include: { 
+        _count: { select: { countings: true, children: true } },
+      },
+      orderBy: { createdAt: 'asc' }
     });
     return NextResponse.json(locations);
   } catch (error) {
-    return NextResponse.json({ error: 'خطا در دریافت لیست انبارها' }, { status: 500 });
+    return NextResponse.json({ error: 'خطا در دریافت لیست' }, { status: 500 });
   }
 }
 
 export async function POST(req) {
   try {
-    const { code, warehouse } = await req.json(); // "C2F2", 11
+    const { title, type, parentId, warehouse } = await req.json(); 
     
-    // Pattern validation (e.g., C2F2 -> 1 Char, 1 Num, 1 Char, 1 Num)
-    const regex = /^([A-Za-z]+)(\d+)([A-Za-z]+)(\d+)$/;
-    const match = code.toUpperCase().match(regex);
-
-    if (!match) {
-      return NextResponse.json({ error: 'فرمت کد قفسه نامعتبر است. مثال صحیح: C2F2' }, { status: 400 });
+    if (!title || !type) {
+      return NextResponse.json({ error: 'عنوان و نوع سطح الزامی است' }, { status: 400 });
     }
 
-    const [, floor, regionStr, sector, rowStr] = match;
-    const region = parseInt(regionStr, 10);
-    const row = parseInt(rowStr, 10);
-    const warehouseId = warehouse ? parseInt(warehouse, 10) : null;
+    let code = title.toUpperCase();
+    let level = 1;
 
-    const location = await prisma.location.upsert({
-      where: { code: code.toUpperCase() },
-      update: { warehouse: warehouseId }, // if exists, do nothing or update timestamps
-      create: {
-        code: code.toUpperCase(),
-        floor,
-        region,
-        sector,
-        row,
-        warehouse: warehouseId
+    if (parentId) {
+      const parent = await prisma.location.findUnique({ where: { id: parseInt(parentId, 10) } });
+      if (parent) {
+        code = parent.code + title.toUpperCase();
+        level = parent.level + 1;
+      }
+    }
+
+    const location = await prisma.location.create({
+      data: {
+        code,
+        title,
+        type,
+        level,
+        parentId: parentId ? parseInt(parentId, 10) : null,
+        warehouse: warehouse ? parseInt(warehouse, 10) : null
       }
     });
 
     return NextResponse.json({ success: true, location });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'خطا در ثبت قفسه' }, { status: 500 });
+    if (error.code === 'P2002') return NextResponse.json({ error: 'کد ترکیبی ایجاد شده تکراری است' }, { status: 400 });
+    return NextResponse.json({ error: 'خطا در ثبت' }, { status: 500 });
   }
 }

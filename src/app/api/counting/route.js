@@ -9,7 +9,7 @@ export async function POST(req) {
       await prisma.location.upsert({
         where: { code: data.shelfCode.toUpperCase() },
         update: {},
-        create: { code: data.shelfCode.toUpperCase(), floor: '0', region: 0, sector: 'A', row: 0 }
+        create: { code: data.shelfCode.toUpperCase(), title: data.shelfCode.toUpperCase(), type: 'قفسه ناشناس' }
       });
     }
     

@@ -157,7 +157,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 font-bold">
                     <MapPin size={10} />
-                    طبقه {shelf.floor}، انبار {shelf.warehouse}
+                    مسیر: {shelf.code || shelf.Code}، انبار: {shelf.warehouse || 11}
                   </div>
                 </Link>
               ))}

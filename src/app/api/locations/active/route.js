@@ -18,7 +18,8 @@ export async function GET(req) {
       select: {
         code: true,
         warehouse: true,
-        floor: true
+        title: true,
+        type: true
       }
     });
 

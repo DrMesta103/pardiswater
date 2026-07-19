@@ -44,10 +44,12 @@ model Authenticator {
 model Location {
   id        Int        @id @default(autoincrement())
   code      String     @unique
-  floor     String   
-  region    Int      
-  sector    String   
-  row       Int      
+  title     String     @default("")
+  type      String     @default("")
+  level     Int        @default(1)
+  parentId  Int?
+  parent    Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children  Location[] @relation("LocationHierarchy")
   warehouse Int?       
   countings Counting[]
   isLocked   Boolean   @default(false)

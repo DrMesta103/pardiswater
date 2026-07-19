@@ -35,7 +35,7 @@ export default function AdminStats() {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-20">
-      <Header title="آمار طبقات" showBack={true} />
+      <Header title="آمار انبارها" showBack={true} />
       
       <div className="p-5 flex flex-col gap-4">
         {loading ? (
@@ -55,8 +55,8 @@ export default function AdminStats() {
                 className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:scale-[1.01] transition-transform"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 font-extrabold text-xl rounded-xl flex items-center justify-center">
-                    {stat.floor}
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 font-extrabold text-lg rounded-xl flex items-center justify-center">
+                    {stat.group}
                   </div>
                   <div className="flex flex-col">
                     <span className="font-extrabold text-gray-800 text-sm">شمارش‌های ثبت شده</span>

@@ -10,16 +10,16 @@ export async function GET() {
       }
     });
 
-    // Calculate stats per floor
+    // Calculate stats per warehouse
     const stats = countings.reduce((acc, curr) => {
-      const floor = curr.location?.floor || 'بدون قفسه';
+      const warehouse = curr.warehouse || 'بدون انبار';
       
-      if (!acc[floor]) {
-        acc[floor] = { floor, totalCountings: 0, items: [] };
+      if (!acc[warehouse]) {
+        acc[warehouse] = { group: warehouse, totalCountings: 0, items: [] };
       }
       
-      acc[floor].totalCountings += 1;
-      acc[floor].items.push(curr);
+      acc[warehouse].totalCountings += 1;
+      acc[warehouse].items.push(curr);
       
       return acc;
     }, {});
