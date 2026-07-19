@@ -1,4 +1,5 @@
 import './globals.css'
+import NetworkStatus from '@/components/NetworkStatus'
 
 export const viewport = {
   width: 'device-width',
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
                 طراحی در <span className="text-indigo-500 font-extrabold">استودیو نوآوری هوکا</span>
               </p>
             </div>
+            <NetworkStatus />
           </div>
         </main>
       </body>
