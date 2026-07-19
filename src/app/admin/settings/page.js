@@ -9,10 +9,17 @@ export default function SettingsPage() {
     blind_counting: false,
     correction_roles: ['ADMIN', 'SUPERVISOR'],
     uncounted_shelf_days: 10,
-    location_levels: ['طبقه', 'اتاق', 'قفسه', 'ردیف']
+    location_levels: [
+      { name: 'طبقه', format: 'UPPERCASE' },
+      { name: 'اتاق', format: 'NUMBER' },
+      { name: 'قفسه', format: 'UPPERCASE' },
+      { name: 'ردیف', format: 'NUMBER' }
+    ]
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
 
   const availableRoles = [
@@ -36,6 +43,15 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
+        
+        // Normalize location_levels
+        if (data.location_levels) {
+          data.location_levels = data.location_levels.map(level => {
+            if (typeof level === 'string') return { name: level, format: 'ANY' };
+            return level;
+          });
+        }
+        
         setSettings(prev => ({ ...prev, ...data }));
       }
     } catch (error) {
@@ -77,10 +93,10 @@ export default function SettingsPage() {
     });
   };
 
-  const handleLevelChange = (index, value) => {
+  const handleLevelChange = (index, field, value) => {
     setSettings(prev => {
       const levels = [...(prev.location_levels || [])];
-      levels[index] = value;
+      levels[index] = { ...levels[index], [field]: value };
       return { ...prev, location_levels: levels };
     });
   };
@@ -88,7 +104,7 @@ export default function SettingsPage() {
   const addLevel = () => {
     setSettings(prev => ({
       ...prev,
-      location_levels: [...(prev.location_levels || []), 'سطح جدید']
+      location_levels: [...(prev.location_levels || []), { name: 'سطح جدید', format: 'ANY' }]
     }));
   };
 
@@ -98,6 +114,23 @@ export default function SettingsPage() {
       levels.splice(index, 1);
       return { ...prev, location_levels: levels };
     });
+  };
+
+  const handleResetData = async () => {
+    setResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-data', { method: 'POST' });
+      if (res.ok) {
+        showToast('داده‌ها با موفقیت پاک شدند');
+        setIsResetModalOpen(false);
+      } else {
+        showToast('خطا در پاک کردن داده‌ها', true);
+      }
+    } catch (e) {
+      showToast('خطای شبکه', true);
+    } finally {
+      setResetting(false);
+    }
   };
 
   if (loading) {
@@ -274,21 +307,33 @@ export default function SettingsPage() {
               عناوین سطوح به ترتیب از بزرگترین سطح (مانند طبقه) به کوچکترین (مانند ردیف) را مشخص کنید. این عناوین در صفحه مدیریت قفسه‌ها به صورت خودکار استفاده می‌شوند.
             </p>
             
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {(settings.location_levels || []).map((level, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-100 rounded-[10px] flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                <div key={index} className="flex flex-col md:flex-row items-center gap-2 bg-gray-50 p-2 rounded-[16px] border border-gray-100">
+                  <div className="w-8 h-8 bg-white rounded-[10px] flex items-center justify-center text-xs font-bold text-gray-400 shrink-0 shadow-sm">
                     {index + 1}
                   </div>
                   <input 
                     type="text" 
-                    value={level}
-                    onChange={e => handleLevelChange(index, e.target.value)}
-                    className="flex-1 bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+                    value={level.name || ''}
+                    onChange={e => handleLevelChange(index, 'name', e.target.value)}
+                    placeholder="عنوان سطح (مثال: طبقه)"
+                    className="flex-1 w-full md:w-auto bg-white border border-gray-200 rounded-[12px] px-3 py-2.5 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
+                  <select 
+                    value={level.format || 'ANY'}
+                    onChange={e => handleLevelChange(index, 'format', e.target.value)}
+                    className="flex-1 w-full md:w-auto bg-white border border-gray-200 rounded-[12px] px-3 py-2.5 text-xs font-bold text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                  >
+                    <option value="ANY">فرمت: هر کاراکتری</option>
+                    <option value="UPPERCASE">حروف انگلیسی بزرگ</option>
+                    <option value="LOWERCASE">حروف انگلیسی کوچک</option>
+                    <option value="NUMBER">فقط عدد</option>
+                    <option value="SYMBOL">نماد (+ یا -)</option>
+                  </select>
                   <button 
                     onClick={() => removeLevel(index)}
-                    className="w-10 h-10 bg-red-50 text-red-500 rounded-[12px] flex items-center justify-center shrink-0 hover:bg-red-500 hover:text-white transition-colors"
+                    className="w-full md:w-10 h-10 bg-white text-red-500 border border-gray-200 rounded-[12px] flex items-center justify-center shrink-0 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
                   >
                     <Trash2 size={16} strokeWidth={2.5} />
                   </button>
@@ -321,7 +366,67 @@ export default function SettingsPage() {
             </>
           )}
         </motion.button>
+        
+        {/* Danger Zone */}
+        <div className="mt-8 border-t border-gray-200 pt-8 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm font-black text-red-600 flex items-center gap-2">
+              <AlertCircle size={18} strokeWidth={2.5} />
+              منطقه خطر (Danger Zone)
+            </h3>
+            <p className="text-xs text-gray-500 font-bold leading-relaxed">
+              شما می‌توانید تمام اطلاعات مربوط به انبارگردانی (کالاهای شمارش‌شده) و ساختار قفسه‌بندی (سطوح انبار) را پاک کنید. اطلاعات کالاها، انبارها و کاربران دست نخورده باقی می‌ماند.
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsResetModalOpen(true)}
+            className="w-full bg-red-50 text-red-600 border border-red-100 py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition-all"
+          >
+            <Trash2 size={18} />
+            پاک کردن دیتا شمارش و قفسه‌ها
+          </button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {isResetModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-5"
+            onClick={() => setIsResetModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-4"
+            >
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                <AlertCircle size={32} strokeWidth={2} />
+              </div>
+              <h3 className="font-black text-gray-800 text-lg text-center">آیا مطمئن هستید؟</h3>
+              <p className="text-xs text-gray-500 font-bold text-center leading-relaxed">
+                این عملیات غیرقابل بازگشت است. تمام قفسه‌ها، سطوح، و داده‌های شمارش‌شده به طور کامل از سیستم حذف خواهند شد.
+              </p>
+              
+              <div className="flex gap-3 mt-2">
+                <button 
+                  onClick={() => setIsResetModalOpen(false)}
+                  className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-[16px] text-sm font-black hover:bg-gray-200 transition-colors"
+                >
+                  انصراف
+                </button>
+                <button 
+                  onClick={handleResetData}
+                  disabled={resetting}
+                  className="flex-1 bg-red-500 text-white py-3.5 rounded-[16px] text-sm font-black flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {resetting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'بله، پاک کن'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {toast.show && (

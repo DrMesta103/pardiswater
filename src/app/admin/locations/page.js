@@ -15,8 +15,14 @@ export default function AdminLocations() {
   const [fetching, setFetching] = useState(true);
   
   const [editingId, setEditingId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, title: 'ساختار انبار' }]);
-  const [locationLevels, setLocationLevels] = useState(['طبقه', 'اتاق', 'قفسه', 'ردیف']);
+  const [locationLevels, setLocationLevels] = useState([
+    { name: 'طبقه', format: 'ANY' },
+    { name: 'اتاق', format: 'ANY' },
+    { name: 'قفسه', format: 'ANY' },
+    { name: 'ردیف', format: 'ANY' }
+  ]);
   
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
 
@@ -45,7 +51,8 @@ export default function AdminLocations() {
           setSelectedWarehouse(data.warehouses[0].id);
         }
         if (data.location_levels) {
-          setLocationLevels(data.location_levels);
+          const normalized = data.location_levels.map(l => typeof l === 'string' ? { name: l, format: 'ANY' } : l);
+          setLocationLevels(normalized);
         }
       }
     } catch (e) {
@@ -69,10 +76,30 @@ export default function AdminLocations() {
 
   const handleAddOrEdit = async () => {
     const currentDepth = breadcrumbs.length - 1;
-    const determinedType = locationLevels[currentDepth] || `سطح ${currentDepth + 1}`;
+    const currentLevel = locationLevels[currentDepth] || { name: `سطح ${currentDepth + 1}`, format: 'ANY' };
+    const determinedType = currentLevel.name;
 
     if (!title) {
       showToast('لطفا عنوان را وارد کنید', true);
+      return;
+    }
+
+    // Validation
+    const format = currentLevel.format;
+    if (format === 'UPPERCASE' && !/^[A-Z]+$/.test(title)) {
+      showToast('عنوان فقط باید شامل حروف انگلیسی بزرگ باشد', true);
+      return;
+    }
+    if (format === 'LOWERCASE' && !/^[a-z]+$/.test(title)) {
+      showToast('عنوان فقط باید شامل حروف انگلیسی کوچک باشد', true);
+      return;
+    }
+    if (format === 'NUMBER' && !/^[0-9]+$/.test(title)) {
+      showToast('عنوان فقط باید شامل اعداد باشد', true);
+      return;
+    }
+    if (format === 'SYMBOL' && !/^[+\-]+$/.test(title)) {
+      showToast('عنوان فقط می‌تواند شامل علامت + یا - باشد', true);
       return;
     }
     
@@ -96,8 +123,8 @@ export default function AdminLocations() {
       if (res.ok) {
         showToast(editingId ? 'سطح با موفقیت ویرایش شد' : 'سطح با موفقیت ثبت شد!');
         setTitle('');
-        setType('');
         setEditingId(null);
+        setIsModalOpen(false);
         fetchLocations(currentParentId);
       } else {
         showToast(data.error || 'خطا در ثبت سطح', true);
@@ -129,24 +156,26 @@ export default function AdminLocations() {
     setBreadcrumbs(prev => [...prev, { id: loc.id, title: loc.type + ' ' + loc.title }]);
     setEditingId(null);
     setTitle('');
-    setType('');
   };
 
   const navigateToCrumb = (index) => {
     setBreadcrumbs(prev => prev.slice(0, index + 1));
     setEditingId(null);
     setTitle('');
-    setType('');
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setTitle('');
+    setIsModalOpen(false);
   };
 
   const currentDepth = breadcrumbs.length - 1;
-  const nextLevelName = locationLevels[currentDepth] || `سطح ${currentDepth + 1}`;
-  const childLevelName = locationLevels[currentDepth + 1] || `سطح ${currentDepth + 2}`;
+  const currentLevel = locationLevels[currentDepth] || { name: `سطح ${currentDepth + 1}`, format: 'ANY' };
+  const nextLevel = locationLevels[currentDepth + 1] || { name: `سطح ${currentDepth + 2}`, format: 'ANY' };
+  
+  const nextLevelName = currentLevel.name;
+  const childLevelName = nextLevel.name;
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
@@ -170,53 +199,15 @@ export default function AdminLocations() {
           ))}
         </div>
 
-        {/* Action Box */}
-        <div className="w-full bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
-          
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-bold text-gray-700">{editingId ? `ویرایش ${nextLevelName}` : `ثبت ${nextLevelName} جدید`}</span>
-            {editingId && (
-              <button onClick={cancelEdit} className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg">
-                لغو ویرایش
-              </button>
-            )}
-          </div>
-          
-          <select
-            value={selectedWarehouse}
-            onChange={(e) => setSelectedWarehouse(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-          >
-            <option value="" disabled>انبار را انتخاب کنید...</option>
-            {warehouses.map(wh => (
-              <option key={wh.id} value={wh.id}>{wh.name} (کد: {wh.id})</option>
-            ))}
-          </select>
-          
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-400 font-bold">عنوان {nextLevelName}</label>
-              <input 
-                type="text" 
-                dir="ltr"
-                value={title} 
-                onChange={e => setTitle(e.target.value)} 
-                placeholder="مثال: A یا 1" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm text-left uppercase font-bold text-gray-800 focus:outline-none focus:border-indigo-500" 
-              />
-            </div>
-          </div>
-
-          <motion.button 
-            whileTap={{ scale: 0.98 }}
-            onClick={handleAddOrEdit}
-            disabled={loading || !title}
-            className="w-full bg-gray-900 text-white py-3.5 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-1"
-          >
-            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (editingId ? <Edit2 size={18}/> : <Plus size={20}/>)}
-            {editingId ? 'ویرایش اطلاعات' : 'ثبت اطلاعات'}
-          </motion.button>
-        </div>
+        {/* Action Button */}
+        <motion.button 
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsModalOpen(true)}
+          className="w-full bg-indigo-50 text-indigo-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors"
+        >
+          <Plus size={20} />
+          افزودن {nextLevelName} جدید
+        </motion.button>
 
         {/* List Section */}
         <div className="flex flex-col gap-4 mt-2">
@@ -282,9 +273,8 @@ export default function AdminLocations() {
                               e.stopPropagation();
                               setEditingId(loc.id); 
                               setTitle(loc.title);
-                              setType(loc.type);
                               if(loc.warehouse) setSelectedWarehouse(loc.warehouse);
-                              window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                              setIsModalOpen(true);
                             }}
                             className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                           >
@@ -325,6 +315,66 @@ export default function AdminLocations() {
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
+            onClick={cancelEdit}
+          >
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="font-black text-gray-800 text-lg">{editingId ? `ویرایش ${nextLevelName}` : `ثبت ${nextLevelName} جدید`}</h3>
+                <button onClick={cancelEdit} className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
+                  <XCircle size={20} />
+                </button>
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                <select
+                  value={selectedWarehouse}
+                  onChange={(e) => setSelectedWarehouse(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-4 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+                >
+                  <option value="" disabled>انبار را انتخاب کنید...</option>
+                  {warehouses.map(wh => (
+                    <option key={wh.id} value={wh.id}>{wh.name} (کد: {wh.id})</option>
+                  ))}
+                </select>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs text-gray-500 font-bold">عنوان {nextLevelName}</label>
+                  <input 
+                    type="text" 
+                    dir="ltr"
+                    value={title} 
+                    onChange={e => setTitle(e.target.value)} 
+                    placeholder="مثال: A یا 1" 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-4 text-base text-left font-black text-gray-800 focus:outline-none focus:border-indigo-500" 
+                  />
+                  <span className="text-[10px] text-gray-400 font-medium">فرمت مجاز: {currentLevel.format === 'ANY' ? 'هر کاراکتری' : currentLevel.format === 'UPPERCASE' ? 'حروف بزرگ انگلیسی' : currentLevel.format === 'LOWERCASE' ? 'حروف کوچک انگلیسی' : currentLevel.format === 'NUMBER' ? 'فقط عدد' : 'فقط + یا -'}</span>
+                </div>
+              </div>
+
+              <motion.button 
+                whileTap={{ scale: 0.98 }}
+                onClick={handleAddOrEdit}
+                disabled={loading || !title}
+                className="w-full bg-indigo-600 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-2"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (editingId ? <Edit2 size={18}/> : <Plus size={20}/>)}
+                {editingId ? 'ذخیره تغییرات' : 'ثبت اطلاعات'}
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Minimal Toast Notification */}
       <AnimatePresence>
