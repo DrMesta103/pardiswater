@@ -25,14 +25,13 @@ export default function RootLayout({ children }) {
       <body className="bg-gray-100 transition-colors">
         <main className="w-full min-h-screen flex flex-col justify-start items-center">
           <div className="w-full max-w-md bg-white min-h-screen shadow-lg relative flex flex-col">
-            <div className="flex-1 pb-10">
+            <div className="flex-1 pb-16">
               {children}
             </div>
-            <div className="w-full py-4 text-center mt-auto">
-              <p className="text-[9px] font-bold text-gray-300 dir-ltr tracking-widest uppercase">
-                <span className="text-indigo-300">HOUKA</span>
+            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 py-2.5 text-center z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+              <p className="text-[10px] font-black text-gray-400 tracking-wide flex items-center justify-center gap-1">
+                طراحی در <span className="text-indigo-500 font-extrabold">استودیو نوآوری هوکا</span>
               </p>
-              <p className="text-[8px] font-bold text-gray-200 mt-1">App v1.4.0</p>
             </div>
           </div>
         </main>

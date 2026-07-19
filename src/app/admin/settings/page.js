@@ -309,7 +309,7 @@ export default function SettingsPage() {
             
             <div className="flex flex-col gap-3">
               {(settings.location_levels || []).map((level, index) => (
-                <div key={index} className="flex flex-col md:flex-row items-center gap-2 bg-gray-50 p-2 rounded-[16px] border border-gray-100">
+                <div key={index} className="flex flex-row items-center gap-2 bg-gray-50 p-2 rounded-[16px] border border-gray-100">
                   <div className="w-8 h-8 bg-white rounded-[10px] flex items-center justify-center text-xs font-bold text-gray-400 shrink-0 shadow-sm">
                     {index + 1}
                   </div>
@@ -317,23 +317,24 @@ export default function SettingsPage() {
                     type="text" 
                     value={level.name || ''}
                     onChange={e => handleLevelChange(index, 'name', e.target.value)}
-                    placeholder="عنوان سطح (مثال: طبقه)"
-                    className="flex-1 w-full md:w-auto bg-white border border-gray-200 rounded-[12px] px-3 py-2.5 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+                    placeholder="عنوان"
+                    className="flex-1 w-full bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                   <select 
                     value={level.format || 'ANY'}
                     onChange={e => handleLevelChange(index, 'format', e.target.value)}
-                    className="flex-1 w-full md:w-auto bg-white border border-gray-200 rounded-[12px] px-3 py-2.5 text-xs font-bold text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                    dir="ltr"
+                    className="w-20 shrink-0 bg-white border border-gray-200 rounded-[12px] px-2 py-2 text-sm font-bold text-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
                   >
-                    <option value="ANY">فرمت: هر کاراکتری</option>
-                    <option value="UPPERCASE">حروف انگلیسی بزرگ</option>
-                    <option value="LOWERCASE">حروف انگلیسی کوچک</option>
-                    <option value="NUMBER">فقط عدد</option>
-                    <option value="SYMBOL">نماد (+ یا -)</option>
+                    <option value="ANY">*</option>
+                    <option value="UPPERCASE">ABC</option>
+                    <option value="LOWERCASE">abc</option>
+                    <option value="NUMBER">123</option>
+                    <option value="SYMBOL">+/-</option>
                   </select>
                   <button 
                     onClick={() => removeLevel(index)}
-                    className="w-full md:w-10 h-10 bg-white text-red-500 border border-gray-200 rounded-[12px] flex items-center justify-center shrink-0 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
+                    className="w-10 h-10 bg-white text-red-500 border border-gray-200 rounded-[12px] flex items-center justify-center shrink-0 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
                   >
                     <Trash2 size={16} strokeWidth={2.5} />
                   </button>

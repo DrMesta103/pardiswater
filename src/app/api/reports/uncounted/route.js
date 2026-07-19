@@ -19,14 +19,24 @@ export async function GET(req) {
     const countedProductIds = new Set(countings.map(c => String(c.product_id)));
 
     // 2. Fetch all products from Hesabfa
-    const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
-      apiKey: HESABFA_API_KEY,
-      loginToken: HESABFA_TOKEN,
-      queryInfo: { Take: 2000, Skip: 0 },
-      type: 0
-    });
-
-    const hesabfaItems = res.data?.Result?.List || [];
+    let hesabfaItems = [];
+    let skip = 0;
+    const take = 1000;
+    
+    while (true) {
+      const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
+        apiKey: HESABFA_API_KEY,
+        loginToken: HESABFA_TOKEN,
+        queryInfo: { Take: take, Skip: skip },
+        type: 0
+      });
+      
+      const list = res.data?.Result?.List || [];
+      if (list.length === 0) break;
+      
+      hesabfaItems = hesabfaItems.concat(list);
+      skip += take;
+    }
 
     // 3. Filter items that have Stock > 0 but are not in countedProductIds
     const uncounted = hesabfaItems.filter(item => {

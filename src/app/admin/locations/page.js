@@ -185,18 +185,28 @@ export default function AdminLocations() {
         
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide text-sm font-bold text-gray-600">
-          {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.id || 'root'} className="flex items-center gap-2 shrink-0">
-              <button 
-                onClick={() => navigateToCrumb(index)}
-                className={`flex items-center gap-1 transition-colors ${index === breadcrumbs.length - 1 ? 'text-indigo-600 px-3 py-1.5 bg-indigo-50 rounded-xl' : 'hover:text-gray-900'}`}
-              >
-                {crumb.id === null ? <Home size={16} /> : null}
-                {crumb.title}
-              </button>
-              {index < breadcrumbs.length - 1 && <ChevronLeft size={16} className="text-gray-400" />}
-            </div>
-          ))}
+          {breadcrumbs.length > 1 && (
+            <button 
+              onClick={() => navigateToCrumb(breadcrumbs.length - 2)}
+              className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-xl text-gray-600 shrink-0 hover:bg-gray-50 transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
+          {breadcrumbs.map((crumb, index) => {
+            if (crumb.id === null) return null;
+            return (
+              <div key={crumb.id || 'root'} className="flex items-center gap-2 shrink-0">
+                <button 
+                  onClick={() => navigateToCrumb(index)}
+                  className={`flex items-center gap-1 transition-colors ${index === breadcrumbs.length - 1 ? 'text-indigo-600 px-3 py-1.5 bg-indigo-50 rounded-xl' : 'hover:text-gray-900'}`}
+                >
+                  {crumb.title}
+                </button>
+                {index < breadcrumbs.length - 1 && <ChevronLeft size={16} className="text-gray-400" />}
+              </div>
+            );
+          })}
         </div>
 
         {/* Action Button */}

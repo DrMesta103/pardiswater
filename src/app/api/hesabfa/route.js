@@ -27,13 +27,26 @@ export async function POST(req) {
     }
 
     if (type === 'all') {
-      const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
-        apiKey: HESABFA_API_KEY,
-        loginToken: HESABFA_TOKEN,
-        queryInfo: { Take: 2000, Skip: 0 },
-        type: 0
-      });
-      return NextResponse.json(res.data);
+      let allItems = [];
+      let skip = 0;
+      const take = 1000;
+      
+      while (true) {
+        const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
+          apiKey: HESABFA_API_KEY,
+          loginToken: HESABFA_TOKEN,
+          queryInfo: { Take: take, Skip: skip },
+          type: 0
+        });
+        
+        const list = res.data?.Result?.List || [];
+        if (list.length === 0) break;
+        
+        allItems = allItems.concat(list);
+        skip += take;
+      }
+      
+      return NextResponse.json({ Result: { List: allItems } });
     }
 
     return NextResponse.json({ error: 'نوع درخواست نامعتبر است' }, { status: 400 });
