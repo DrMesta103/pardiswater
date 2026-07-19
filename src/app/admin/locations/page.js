@@ -10,13 +10,13 @@ export default function AdminLocations() {
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   
   const [title, setTitle] = useState('');
-  const [type, setType] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   
   const [editingId, setEditingId] = useState(null);
-  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, title: 'ریشه انبار' }]);
+  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, title: 'ساختار انبار' }]);
+  const [locationLevels, setLocationLevels] = useState(['طبقه', 'اتاق', 'قفسه', 'ردیف']);
   
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
 
@@ -44,6 +44,9 @@ export default function AdminLocations() {
         if (data.warehouses?.length > 0) {
           setSelectedWarehouse(data.warehouses[0].id);
         }
+        if (data.location_levels) {
+          setLocationLevels(data.location_levels);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -65,8 +68,11 @@ export default function AdminLocations() {
   };
 
   const handleAddOrEdit = async () => {
-    if (!title || !type) {
-      showToast('لطفا عنوان و نوع سطح را وارد کنید', true);
+    const currentDepth = breadcrumbs.length - 1;
+    const determinedType = locationLevels[currentDepth] || `سطح ${currentDepth + 1}`;
+
+    if (!title) {
+      showToast('لطفا عنوان را وارد کنید', true);
       return;
     }
     
@@ -80,7 +86,7 @@ export default function AdminLocations() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title, 
-          type, 
+          type: determinedType, 
           parentId: currentParentId, 
           warehouse: selectedWarehouse 
         })
@@ -136,8 +142,11 @@ export default function AdminLocations() {
   const cancelEdit = () => {
     setEditingId(null);
     setTitle('');
-    setType('');
   };
+
+  const currentDepth = breadcrumbs.length - 1;
+  const nextLevelName = locationLevels[currentDepth] || `سطح ${currentDepth + 1}`;
+  const childLevelName = locationLevels[currentDepth + 1] || `سطح ${currentDepth + 2}`;
 
   return (
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
@@ -165,7 +174,7 @@ export default function AdminLocations() {
         <div className="w-full bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
           
           <div className="flex justify-between items-center mb-1">
-            <span className="text-sm font-bold text-gray-700">{editingId ? 'ویرایش سطح' : 'ثبت سطح جدید در ' + (breadcrumbs[breadcrumbs.length - 1].id === null ? 'ریشه' : breadcrumbs[breadcrumbs.length - 1].title)}</span>
+            <span className="text-sm font-bold text-gray-700">{editingId ? `ویرایش ${nextLevelName}` : `ثبت ${nextLevelName} جدید`}</span>
             {editingId && (
               <button onClick={cancelEdit} className="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg">
                 لغو ویرایش
@@ -184,25 +193,15 @@ export default function AdminLocations() {
             ))}
           </select>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-400 font-bold">نوع سطح (مثل: طبقه، اتاق)</label>
-              <input 
-                type="text" 
-                value={type} 
-                onChange={e => setType(e.target.value)} 
-                placeholder="مثال: طبقه" 
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500" 
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-400 font-bold">عنوان سطح (مثل: A, 5)</label>
+              <label className="text-[10px] text-gray-400 font-bold">عنوان {nextLevelName}</label>
               <input 
                 type="text" 
                 dir="ltr"
                 value={title} 
                 onChange={e => setTitle(e.target.value)} 
-                placeholder="مثال: A" 
+                placeholder="مثال: A یا 1" 
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm text-left uppercase font-bold text-gray-800 focus:outline-none focus:border-indigo-500" 
               />
             </div>
@@ -211,7 +210,7 @@ export default function AdminLocations() {
           <motion.button 
             whileTap={{ scale: 0.98 }}
             onClick={handleAddOrEdit}
-            disabled={loading || !title || !type}
+            disabled={loading || !title}
             className="w-full bg-gray-900 text-white py-3.5 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-1"
           >
             {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (editingId ? <Edit2 size={18}/> : <Plus size={20}/>)}
@@ -223,7 +222,7 @@ export default function AdminLocations() {
         <div className="flex flex-col gap-4 mt-2">
           
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-gray-800 text-sm">لیست زیرمجموعه‌ها <span className="text-gray-400 font-medium text-xs">({locations.length})</span></h3>
+            <h3 className="font-bold text-gray-800 text-sm">لیست {nextLevelName}‌ها <span className="text-gray-400 font-medium text-xs">({locations.length})</span></h3>
           </div>
 
           {fetching ? (
@@ -267,7 +266,7 @@ export default function AdminLocations() {
                             <div className="px-3 py-1.5 bg-gray-50 rounded-xl flex items-center gap-1.5 border border-gray-100">
                               <Box size={12} className="text-gray-400" />
                               <span className="text-[10px] font-bold text-gray-500">
-                                {hasChildren ? `${loc._count.children} زیرمجموعه` : ''}
+                                {hasChildren ? `${loc._count.children} ${childLevelName}` : ''}
                                 {hasChildren && hasData ? ' • ' : ''}
                                 {hasData ? `${loc._count.countings} کالا` : ''}
                               </span>
@@ -318,8 +317,8 @@ export default function AdminLocations() {
                   <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
                     <MapPin className="text-gray-300" size={24} />
                   </div>
-                  <span className="text-sm font-bold text-gray-500">هیچ سطحی یافت نشد</span>
-                  <span className="text-xs text-gray-400 mt-1">با فرم بالا یک زیرمجموعه اضافه کنید</span>
+                  <span className="text-sm font-bold text-gray-500">هیچ {nextLevelName}‌ای یافت نشد</span>
+                  <span className="text-xs text-gray-400 mt-1">با فرم بالا یک {nextLevelName} اضافه کنید</span>
                 </motion.div>
               )}
             </div>

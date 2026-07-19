@@ -1,14 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Save, EyeOff, ShieldCheck, Check, AlertCircle, XCircle } from 'lucide-react';
+import { Save, EyeOff, ShieldCheck, Check, AlertCircle, XCircle, Layers, Trash2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     blind_counting: false,
     correction_roles: ['ADMIN', 'SUPERVISOR'],
-    uncounted_shelf_days: 10
+    uncounted_shelf_days: 10,
+    location_levels: ['طبقه', 'اتاق', 'قفسه', 'ردیف']
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,29 @@ export default function SettingsPage() {
       } else {
         return { ...prev, correction_roles: [...roles, roleId] };
       }
+    });
+  };
+
+  const handleLevelChange = (index, value) => {
+    setSettings(prev => {
+      const levels = [...(prev.location_levels || [])];
+      levels[index] = value;
+      return { ...prev, location_levels: levels };
+    });
+  };
+
+  const addLevel = () => {
+    setSettings(prev => ({
+      ...prev,
+      location_levels: [...(prev.location_levels || []), 'سطح جدید']
+    }));
+  };
+
+  const removeLevel = (index) => {
+    setSettings(prev => {
+      const levels = [...(prev.location_levels || [])];
+      levels.splice(index, 1);
+      return { ...prev, location_levels: levels };
     });
   };
 
@@ -235,6 +259,49 @@ export default function SettingsPage() {
                 className="w-20 bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-center font-black text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
               />
               <span className="text-sm font-bold text-gray-600">روز</span>
+            </div>
+          </div>
+
+          {/* Location Levels Setting */}
+          <div className="border-t border-gray-50 pt-8">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-[12px] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Layers size={16} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-sm font-bold text-gray-800">تعریف سطوح انبار (ساختار درختی)</h2>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              عناوین سطوح به ترتیب از بزرگترین سطح (مانند طبقه) به کوچکترین (مانند ردیف) را مشخص کنید. این عناوین در صفحه مدیریت قفسه‌ها به صورت خودکار استفاده می‌شوند.
+            </p>
+            
+            <div className="flex flex-col gap-2">
+              {(settings.location_levels || []).map((level, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gray-100 rounded-[10px] flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                    {index + 1}
+                  </div>
+                  <input 
+                    type="text" 
+                    value={level}
+                    onChange={e => handleLevelChange(index, e.target.value)}
+                    className="flex-1 bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+                  />
+                  <button 
+                    onClick={() => removeLevel(index)}
+                    className="w-10 h-10 bg-red-50 text-red-500 rounded-[12px] flex items-center justify-center shrink-0 hover:bg-red-500 hover:text-white transition-colors"
+                  >
+                    <Trash2 size={16} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ))}
+              
+              <button 
+                onClick={addLevel}
+                className="w-full mt-2 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 py-3 rounded-[12px] text-sm font-bold hover:bg-indigo-100 transition-colors"
+              >
+                <Plus size={16} strokeWidth={3} />
+                افزودن سطح جدید
+              </button>
             </div>
           </div>
         </div>
