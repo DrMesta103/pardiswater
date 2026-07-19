@@ -49,6 +49,14 @@ export async function POST(req) {
       return NextResponse.json({ Result: { List: allItems } });
     }
 
+    if (type === 'warehouses') {
+      const res = await axios.post('https://api.hesabfa.com/v1/setting/getWarehouses', {
+        apiKey: HESABFA_API_KEY,
+        loginToken: HESABFA_TOKEN
+      });
+      return NextResponse.json(res.data);
+    }
+
     return NextResponse.json({ error: 'نوع درخواست نامعتبر است' }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ error: 'خطا در ارتباط با حسابفا' }, { status: 500 });
