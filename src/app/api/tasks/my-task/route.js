@@ -58,10 +58,6 @@ export async function GET(req) {
       // 2. If no pooled task, try to generate location task
       if (!newTaskAdded && taskModeLocation) {
         const locations = await prisma.location.findMany({
-          include: { children: true }
-        });
-        const countableLocations = locations.filter(l => l.children.length === 0).sort((a,b) => a.code.localeCompare(b.code));
-
           where: { level: 2 },
           orderBy: { createdAt: 'asc' }
         });
