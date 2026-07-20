@@ -136,6 +136,9 @@ export default function AdminTasksPage() {
                       ایجاد: {new Date(task.createdAt).toLocaleDateString('fa-IR')}
                     </span>
                     <span className="text-sm font-black text-gray-900 uppercase tracking-widest">{task.targetName}</span>
+                    {task.fullPath && (
+                      <span className="text-[10px] text-gray-500 font-bold mb-1">{task.fullPath}</span>
+                    )}
                     <div className="flex flex-wrap gap-2 mt-1">
                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${getStatusColor(task.status)}`}>
                         {getStatusLabel(task.status)}

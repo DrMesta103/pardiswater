@@ -119,7 +119,32 @@ export async function GET(req) {
       }
     }
 
-    return NextResponse.json({ tasks: currentTasks });
+    // Enhance tasks with full location path
+    const enhancedTasks = await Promise.all(currentTasks.map(async (task) => {
+      if (task.type === 'SYSTEM_LOCATION') {
+        const loc = await prisma.location.findUnique({
+          where: { code: task.targetId },
+          include: { 
+            parent: { include: { parent: { include: { parent: true } } } }
+          }
+        });
+        
+        if (loc) {
+          let pathParts = [loc.title || loc.code];
+          let current = loc.parent;
+          while (current) {
+            pathParts.unshift(current.title || current.code);
+            current = current.parent;
+          }
+          if (loc.warehouse) pathParts.unshift(`انبار ${loc.warehouse}`);
+          
+          return { ...task, fullPath: pathParts.join(' / ') };
+        }
+      }
+      return task;
+    }));
+
+    return NextResponse.json({ tasks: enhancedTasks });
   } catch (error) {
     console.error('Task generation error:', error);
     return NextResponse.json({ error: 'Error generating task' }, { status: 500 });

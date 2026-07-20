@@ -108,6 +108,9 @@ export default function Dashboard() {
                         {task.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
                       </span>
                       <span className="text-sm font-black text-gray-900 uppercase tracking-widest">{task.targetName}</span>
+                      {task.fullPath && (
+                        <span className="text-[9px] text-gray-500 font-bold mt-1 line-clamp-1">{task.fullPath}</span>
+                      )}
                     </div>
                   </div>
                   

@@ -10,7 +10,30 @@ export async function GET(req) {
         creator: { select: { id: true, name: true, username: true } }
       }
     });
-    return NextResponse.json(tasks);
+
+    const enhancedTasks = await Promise.all(tasks.map(async (task) => {
+      if (task.type === 'SYSTEM_LOCATION') {
+        const loc = await prisma.location.findUnique({
+          where: { code: task.targetId },
+          include: { 
+            parent: { include: { parent: { include: { parent: true } } } }
+          }
+        });
+        if (loc) {
+          let pathParts = [loc.title || loc.code];
+          let current = loc.parent;
+          while (current) {
+            pathParts.unshift(current.title || current.code);
+            current = current.parent;
+          }
+          if (loc.warehouse) pathParts.unshift(`انبار ${loc.warehouse}`);
+          return { ...task, fullPath: pathParts.join(' / ') };
+        }
+      }
+      return task;
+    }));
+
+    return NextResponse.json(enhancedTasks);
   } catch (error) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ error: 'خطا در دریافت تسک‌ها' }, { status: 500 });
