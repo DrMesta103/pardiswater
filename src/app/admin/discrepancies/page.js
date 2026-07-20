@@ -13,6 +13,9 @@ export default function DiscrepancyDashboard() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all, surplus (مازاد), deficit (کسری), uncounted
 
+  const [taskModal, setTaskModal] = useState({ isOpen: false, productId: null, productName: '' });
+  const [submittingTask, setSubmittingTask] = useState(false);
+
   useEffect(() => {
     fetch('/api/settings')
       .then(res => res.json())
@@ -57,9 +60,43 @@ export default function DiscrepancyDashboard() {
     }
   };
 
-  const handleRecount = async (productId, productName) => {
-    // In a full system, this would call /api/tasks to assign a recount task
-    alert(`تسک بازشماری برای کالا "${productName}" (کد: ${productId}) صادر شد.`);
+  const handleRecount = (productId, productName) => {
+    setTaskModal({ isOpen: true, productId, productName });
+  };
+
+  const submitTask = async (doItMyself) => {
+    setSubmittingTask(true);
+    try {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      if (!user) {
+        alert('لطفا ابتدا وارد حساب کاربری شوید.');
+        return;
+      }
+
+      const res = await fetch('/api/tasks/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'SYSTEM_ITEM',
+          targetId: taskModal.productId,
+          targetName: taskModal.productName,
+          assignedTo: doItMyself ? user.id : null,
+          createdBy: user.id
+        })
+      });
+
+      if (res.ok) {
+        alert(doItMyself ? 'تسک با موفقیت به شما اختصاص داده شد.' : 'تسک با موفقیت به سیستم ارسال شد.');
+        setTaskModal({ isOpen: false, productId: null, productName: '' });
+      } else {
+        alert('خطا در ایجاد تسک');
+      }
+    } catch (e) {
+      alert('خطای شبکه');
+    } finally {
+      setSubmittingTask(false);
+    }
   };
 
   // We either show discrepancies or uncounted based on filter
@@ -287,6 +324,58 @@ export default function DiscrepancyDashboard() {
         </div>
 
       </div>
+
+      {/* Task Delegation Modal */}
+      <AnimatePresence>
+        {taskModal.isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-5"
+            onClick={() => setTaskModal({ isOpen: false, productId: null, productName: '' })}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-5"
+            >
+              <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-1">
+                <PackageSearch size={28} strokeWidth={2} />
+              </div>
+              <h3 className="font-black text-gray-800 text-lg text-center leading-snug">
+                ارجاع بازشماری کالای<br/>
+                <span className="text-indigo-600">{taskModal.productName}</span>
+              </h3>
+              <p className="text-xs text-gray-500 font-bold text-center leading-relaxed px-2">
+                یک تسک سیستمی برای جستجو و شمارش این کالا در کل انبار صادر می‌شود. چه کسی این تسک را انجام دهد؟
+              </p>
+              
+              <div className="flex flex-col gap-3 mt-2">
+                <button 
+                  onClick={() => submitTask(true)}
+                  disabled={submittingTask}
+                  className="w-full bg-gray-900 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-md"
+                >
+                  {submittingTask ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'خودم انجام می‌دهم'}
+                </button>
+                <button 
+                  onClick={() => submitTask(false)}
+                  disabled={submittingTask}
+                  className="w-full bg-indigo-50 text-indigo-700 py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                >
+                  ارسال به سیستم (اولین نفر آزاد)
+                </button>
+                <button 
+                  onClick={() => setTaskModal({ isOpen: false, productId: null, productName: '' })}
+                  disabled={submittingTask}
+                  className="w-full text-gray-400 hover:text-gray-600 py-2 text-xs font-bold transition-colors mt-1"
+                >
+                  انصراف
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

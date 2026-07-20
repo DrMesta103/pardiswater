@@ -34,6 +34,24 @@ export async function GET(req) {
       return NextResponse.json({ task: activeTask });
     }
 
+    // Check if there are unassigned tasks in the system pool
+    const pooledTask = await prisma.task.findFirst({
+      where: {
+        assignedTo: null,
+        status: 'OPEN',
+        type: { in: ['SYSTEM_LOCATION', 'SYSTEM_ITEM'] }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (pooledTask) {
+      const assignedPooledTask = await prisma.task.update({
+        where: { id: pooledTask.id },
+        data: { assignedTo: parseInt(userId, 10) }
+      });
+      return NextResponse.json({ task: assignedPooledTask });
+    }
+
     // Generate location task if enabled
     if (taskModeLocation) {
       const locations = await prisma.location.findMany({
