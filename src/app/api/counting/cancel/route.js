@@ -42,6 +42,26 @@ export async function POST(req) {
         where: { code: shelfCode.toUpperCase(), warehouse: Number(warehouse) },
         data: { isLocked: false, lockedById: null, lockedAt: null }
       });
+      
+      // Update Task to CANCELLED
+      await prisma.task.updateMany({
+        where: {
+          targetId: shelfCode.toUpperCase(),
+          assignedTo: Number(userId),
+          status: { in: ['OPEN', 'IN_PROGRESS'] }
+        },
+        data: { status: 'CANCELLED' }
+      });
+    } else if (product_id) {
+      // For Item Mode
+      await prisma.task.updateMany({
+        where: {
+          targetId: String(product_id),
+          assignedTo: Number(userId),
+          status: { in: ['OPEN', 'IN_PROGRESS'] }
+        },
+        data: { status: 'CANCELLED' }
+      });
     }
 
     // 3. Log the action

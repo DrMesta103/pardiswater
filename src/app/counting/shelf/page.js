@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
-import { Lock, Unlock, ScanLine, Search, Check, Box, Layers, AlertCircle, X, History } from 'lucide-react';
+import { ScanLine, Search, Check, Box, Layers, AlertCircle, X, History, Trash2, Edit, Plus, Minus } from 'lucide-react';
 import { hasRole } from '@/lib/auth';
 import { saveCountOffline, syncOfflineCounts } from '@/lib/offlineSync';
 import dynamic from 'next/dynamic';
@@ -43,34 +43,53 @@ function ShelfCountingContent() {
   const [unknownDesc, setUnknownDesc] = useState('');
   const [unknownQty, setUnknownQty] = useState('');
 
+  // New states
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  
+  const [isCountModalOpen, setIsCountModalOpen] = useState(false);
+  const [editingItemId, setEditingItemId] = useState(null);
+
   const inputRef = useRef(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    if (userData) setUser(JSON.parse(userData));
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      if (shelfCode && warehouse) {
+        fetchHistory(parsedUser.id);
+      }
+    }
     fetchSettings();
 
     window.addEventListener('online', syncOfflineCounts);
     return () => window.removeEventListener('online', syncOfflineCounts);
-  }, []);
+  }, [shelfCode, warehouse]);
 
   const fetchSettings = async () => {
     try {
       const res = await fetch('/api/settings');
+      if (res.ok) setSettings(await res.json());
+    } catch (e) {} finally { setLoading(false); }
+  };
+
+  const fetchHistory = async (userId) => {
+    try {
+      const res = await fetch(`/api/counting/history?shelfCode=${shelfCode}&warehouse=${warehouse}&userId=${userId}`);
       if (res.ok) {
         const data = await res.json();
-        setSettings(data);
+        setHistory(data.history || []);
       }
-    } catch (e) {} finally { setLoading(false); }
+    } catch(e) {}
   };
 
   const handleFinishShelf = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch('/api/locations/lock', {
+      await fetch('/api/counting/end-shelf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ shelfCode, action: 'UNLOCK' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shelfCode, warehouse, userId: user?.id })
       });
       router.push('/dashboard');
     } catch (error) {
@@ -78,7 +97,22 @@ function ShelfCountingContent() {
     }
   };
 
-  const [otherShelves, setOtherShelves] = useState([]);
+  const handleCancelSubmit = async () => {
+    if (!cancelReason) {
+      alert('لطفاً دلیل لغو را وارد کنید');
+      return;
+    }
+    try {
+      await fetch('/api/counting/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shelfCode, warehouse, userId: user?.id, reason: cancelReason, mode: 'SHELF' })
+      });
+      router.push('/dashboard');
+    } catch (error) {
+      alert('خطا در لغو انبارگردانی');
+    }
+  };
 
   const fetchItemData = async (codeToFetch) => {
     const code = codeToFetch || productCode;
@@ -91,8 +125,6 @@ function ShelfCountingContent() {
     setItemLoading(true);
     setProductName('');
     setOldCount(null);
-    setNewCount('');
-    setOtherShelves([]);
     setProductCode(code);
     
     try {
@@ -104,12 +136,13 @@ function ShelfCountingContent() {
       const nameData = await nameRes.json();
       
       if (!nameData?.Result?.Name || nameData?.Result?.Name === 'نامشخص' || nameData.error) {
-        setErrorMsg(`کالایی با کد ${code} در حسابفا یافت نشد.`);
+        setErrorMsg(`کالایی با کد ${code} یافت نشد.`);
         setItemLoading(false);
         return;
       }
       
-      setProductName(nameData.Result.Name);
+      const foundName = nameData.Result.Name;
+      setProductName(foundName);
 
       const qRes = await fetch('/api/hesabfa', {
         method: 'POST',
@@ -134,22 +167,25 @@ function ShelfCountingContent() {
       }
       setOldCount(foundStock);
 
-      // Fetch other shelves where this product was counted
-      fetch(`/api/counting/product-locations?product_id=${code}&warehouse=${warehouse}&current_shelf=${shelfCode}`)
-        .then(res => res.json())
-        .then(locData => {
-          if (locData.shelves && locData.shelves.length > 0) {
-            setOtherShelves(locData.shelves);
-          }
-        })
-        .catch(() => {});
+      // Check history for existing count
+      // Need to use state updater to ensure latest history
+      setHistory(prevHistory => {
+        const existing = prevHistory.find(h => h.code === code);
+        if (existing) {
+          setNewCount((Number(existing.count) + 1).toString());
+          setEditingItemId(existing.id);
+        } else {
+          setNewCount('');
+          setEditingItemId(null);
+        }
+        return prevHistory;
+      });
+
+      setIsCountModalOpen(true);
       
-      if (inputRef.current) {
-        setTimeout(() => inputRef.current.focus(), 100);
-      }
     } catch (error) {
       console.error(error);
-      setErrorMsg('خطا در ارتباط با حسابفا. لطفاً دوباره تلاش کنید.');
+      setErrorMsg('خطا در ارتباط با سرور.');
     } finally {
       setItemLoading(false);
     }
@@ -164,9 +200,8 @@ function ShelfCountingContent() {
   const handleScan = (detectedCodes) => {
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedValue = detectedCodes[0].rawValue;
-      // We DO NOT turn off the camera. Just fetch!
       setCamError('');
-      if (scannedValue !== productCode) {
+      if (scannedValue !== productCode || !isCountModalOpen) {
         fetchItemData(scannedValue);
       }
     }
@@ -179,17 +214,37 @@ function ShelfCountingContent() {
   };
 
   const handleSubmitItem = async () => {
-    if (!productName || errorMsg) {
-      setErrorMsg('ابتدا از صحت کالا اطمینان حاصل کنید');
-      return;
-    }
     if (newCount === '' || newCount === null) {
-      setErrorMsg('لطفاً تعداد را وارد کنید');
+      alert('لطفاً تعداد را وارد کنید');
       return;
     }
     
     setSubmitLoading(true);
     
+    if (editingItemId) {
+      // It's an update
+      try {
+        const res = await fetch('/api/counting', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingItemId, new_count: Number(newCount) })
+        });
+        if (res.ok) {
+          setHistory(prev => prev.map(h => h.id === editingItemId ? { ...h, count: newCount } : h));
+          setIsCountModalOpen(false);
+          setProductCode('');
+          setProductName('');
+        } else {
+          alert('خطا در ویرایش شمارش');
+        }
+      } catch(e) {
+        alert('خطای شبکه');
+      } finally {
+        setSubmitLoading(false);
+      }
+      return;
+    }
+
     const payload = {
       product_id: String(productCode),
       product_name: productName,
@@ -209,43 +264,49 @@ function ShelfCountingContent() {
       });
 
       if (res.ok) {
-        setHistory([{ code: productCode, name: productName, count: newCount }, ...history]);
+        const data = await res.json();
+        setHistory([{ id: data.count.id, code: productCode, name: productName, count: newCount }, ...history]);
+        setIsCountModalOpen(false);
         setProductCode('');
         setProductName('');
-        setOldCount(null);
-        setNewCount('');
-        setErrorMsg('');
       } else {
-        setErrorMsg('خطا در ثبت شمارش در سرور');
+        alert('خطا در ثبت شمارش');
       }
     } catch (err) {
       await saveCountOffline(payload);
-      alert('ارتباط با سرور قطع است. شمارش ذخیره شد و پس از اتصال ارسال می‌شود.');
       setHistory([{ code: productCode, name: productName, count: newCount, offline: true }, ...history]);
+      setIsCountModalOpen(false);
       setProductCode('');
       setProductName('');
-      setOldCount(null);
-      setNewCount('');
-      setErrorMsg('');
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleCancelShelf = async () => {
-    const reason = window.prompt('لطفاً دلیل لغو انبارگردانی این قفسه را وارد کنید:');
-    if (!reason) return;
+  const handleDeleteHistory = async (item) => {
+    if (!confirm(`آیا از حذف کالا ${item.name} اطمینان دارید؟`)) return;
     
-    try {
-      await fetch('/api/counting/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shelfCode, warehouse, userId: user?.id, reason, mode: 'SHELF' })
-      });
-      router.push('/dashboard');
-    } catch (error) {
-      alert('خطا در لغو انبارگردانی');
+    if (item.id) {
+      try {
+        const res = await fetch(`/api/counting?id=${item.id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setHistory(prev => prev.filter(h => h.id !== item.id));
+        } else {
+          alert('خطا در حذف');
+        }
+      } catch(e) { alert('خطای شبکه'); }
+    } else {
+      // offline item
+      setHistory(prev => prev.filter(h => h.code !== item.code));
     }
+  };
+
+  const handleEditHistory = (item) => {
+    setProductCode(item.code);
+    setProductName(item.name);
+    setNewCount(item.count.toString());
+    setEditingItemId(item.id || null);
+    setIsCountModalOpen(true);
   };
 
   const handleSearch = async () => {
@@ -297,7 +358,8 @@ function ShelfCountingContent() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        setHistory([{ code: generatedCode, name: `ناشناس: ${unknownDesc}`, count: unknownQty }, ...history]);
+        const data = await res.json();
+        setHistory([{ id: data.count.id, code: generatedCode, name: `ناشناس: ${unknownDesc}`, count: unknownQty }, ...history]);
         setIsUnknownModalOpen(false);
         setUnknownDesc('');
         setUnknownQty('');
@@ -312,6 +374,31 @@ function ShelfCountingContent() {
       setUnknownQty('');
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  // Touch handlers for count input
+  const lastTouchY = useRef(0);
+  const accumulatedDelta = useRef(0);
+
+  const handleTouchStart = (e) => { 
+    lastTouchY.current = e.touches[0].clientY; 
+    accumulatedDelta.current = 0;
+  };
+  
+  const handleTouchMove = (e) => {
+    const currentY = e.touches[0].clientY;
+    const delta = lastTouchY.current - currentY; // positive = swipe up
+    lastTouchY.current = currentY;
+    
+    accumulatedDelta.current += delta;
+    
+    if (accumulatedDelta.current > 35) { // Threshold 35px
+      setNewCount(prev => String(Number(prev || 0) + 1));
+      accumulatedDelta.current -= 35; 
+    } else if (accumulatedDelta.current < -35) {
+      setNewCount(prev => String(Math.max(0, Number(prev || 0) - 1)));
+      accumulatedDelta.current += 35;
     }
   };
 
@@ -335,18 +422,18 @@ function ShelfCountingContent() {
       {/* Top Fixed Info Bar */}
       <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center font-black">
-            {shelfCode}
+          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center font-black uppercase text-sm">
+            {shelfCode.substring(0, 2)}
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 font-bold tracking-wider">قفسه جاری</span>
-            <span className="text-xs font-black text-gray-800">آماده اسکن کالای بعدی</span>
+            <span className="text-[10px] text-gray-400 font-bold tracking-wider">قفسه فعال در انبار {warehouse}</span>
+            <span className="text-sm font-black text-gray-800 uppercase tracking-widest">{shelfCode}</span>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           <button 
-            onClick={handleCancelShelf}
+            onClick={() => setIsCancelModalOpen(true)}
             className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-[14px] transition-colors"
           >
             <X size={18} strokeWidth={2.5} />
@@ -365,7 +452,7 @@ function ShelfCountingContent() {
         
         {/* Continuous Scanner Area */}
         <div className="bg-white rounded-[24px] p-2 shadow-sm border border-gray-100 flex flex-col relative overflow-hidden">
-          <div className="w-full aspect-video relative flex items-center justify-center bg-gray-900 rounded-[20px] overflow-hidden">
+          <div className="w-full aspect-square relative flex items-center justify-center bg-gray-900 rounded-[20px] overflow-hidden">
             {camError ? (
               <div className="text-red-400 text-xs p-4 text-center font-medium">{camError}</div>
             ) : cameraEnabled ? (
@@ -373,8 +460,7 @@ function ShelfCountingContent() {
                 <div className="w-full h-full opacity-80 [&>div]:!object-cover [&>div>video]:!object-cover">
                   <Scanner onScan={handleScan} onError={handleError} />
                 </div>
-                {/* Scanner Overlay UI */}
-                <div className="absolute inset-0 pointer-events-none border-[3px] border-indigo-500/30 m-4 rounded-[16px]">
+                <div className="absolute inset-0 pointer-events-none border-[3px] border-indigo-500/30 m-6 rounded-[24px]">
                   <div className="absolute top-1/2 left-0 w-full h-[2px] bg-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
                 </div>
               </>
@@ -386,6 +472,25 @@ function ShelfCountingContent() {
             )}
           </div>
           
+          <div className="flex items-center gap-2 mt-3 px-2">
+            <input 
+              type="text" 
+              dir="ltr"
+              value={productCode}
+              onChange={(e) => { setProductCode(e.target.value); setErrorMsg(''); }}
+              onKeyDown={handleProductCodeKeyDown}
+              placeholder="یا بارکد را اینجا تایپ کنید..."
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 text-center placeholder:font-normal"
+            />
+            <button 
+              onClick={() => fetchItemData()}
+              disabled={itemLoading || !productCode}
+              className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors border border-indigo-100 disabled:opacity-50"
+            >
+              {itemLoading ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></div> : <Search size={18} strokeWidth={2.5} />}
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-2 mt-3 px-2 pb-2">
             <button 
               onClick={() => setIsSearchModalOpen(true)}
@@ -414,86 +519,32 @@ function ShelfCountingContent() {
           )}
         </AnimatePresence>
 
-        {/* Product Details & Count input (only shown if valid product found) */}
-        <AnimatePresence>
-          {productName && !itemLoading && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[24px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-indigo-50 flex flex-col gap-4 relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -z-0"></div>
-              
-              <div className="flex justify-between items-start relative z-10">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-black text-gray-800 text-lg leading-tight">{productName}</h3>
-                  <p className="text-xs text-gray-400 font-bold tracking-wider">کد حسابفا: {productCode}</p>
-                </div>
-                {!isBlind && oldCount !== null && (
-                  <div className="bg-indigo-50 text-indigo-600 px-3 py-2 rounded-xl flex flex-col items-center shadow-sm shrink-0 ml-1 border border-indigo-100">
-                    <span className="text-sm font-black">{oldCount}</span>
-                    <span className="text-[9px] font-bold opacity-70">موجودی سیستم</span>
-                  </div>
-                )}
-              </div>
-
-              {otherShelves.length > 0 && (
-                <div className="bg-orange-50 border border-orange-100 rounded-[12px] p-3 text-xs font-bold text-orange-600 flex items-start gap-2 relative z-10">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>
-                    توجه: این کالا قبلاً در قفسه‌های <strong className="bg-orange-200/50 px-1 rounded mx-1" dir="ltr">{otherShelves.join('، ')}</strong> نیز شمارش شده است.
-                  </span>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3 relative z-10 mt-2">
-                <input 
-                  ref={inputRef}
-                  type="number" 
-                  dir="ltr"
-                  value={newCount}
-                  onChange={(e) => { setNewCount(e.target.value); setErrorMsg(''); }}
-                  placeholder="0"
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-[16px] p-4 text-center text-3xl font-black text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all placeholder:text-gray-300"
-                />
-                <button 
-                  onClick={handleSubmitItem}
-                  disabled={submitLoading || !newCount}
-                  className="w-full bg-indigo-600 text-white py-4 rounded-[16px] shadow-md hover:bg-indigo-700 transition-all disabled:opacity-50 text-sm font-black flex items-center justify-center gap-2"
-                >
-                  {submitLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>ثبت موجودی</>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* History of this session */}
         {history.length > 0 && (
-          <div className="flex flex-col gap-3 mt-4">
+          <div className="flex flex-col gap-3 mt-2">
             <h3 className="text-xs font-black text-gray-400 flex items-center gap-2 px-2">
               <History size={14} />
-              تاریخچه شمارش‌های شما در این قفسه
+              تاریخچه شمارش در این قفسه
             </h3>
             <div className="flex flex-col gap-2">
               {history.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-[16px] border border-gray-100 relative overflow-hidden">
+                <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-[16px] border border-gray-100 relative overflow-hidden shadow-sm">
                   {item.offline && <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>}
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-50 rounded-[10px] flex items-center justify-center text-green-500 shrink-0">
-                      <Check size={16} strokeWidth={3} />
-                    </div>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col max-w-[150px] xs:max-w-[180px]">
                       <p className="text-xs font-bold text-gray-800 line-clamp-1">{item.name}</p>
                       <p className="text-[9px] font-bold text-gray-400 mt-0.5">کد: {item.code}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-                    <span className="text-sm font-black text-gray-800">{item.count}</span>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-black text-gray-800 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 min-w-[36px] text-center">{item.count}</span>
+                    <button onClick={() => handleEditHistory(item)} className="w-8 h-8 flex items-center justify-center text-blue-500 bg-blue-50 rounded-[10px]">
+                      <Edit size={14} />
+                    </button>
+                    <button onClick={() => handleDeleteHistory(item)} className="w-8 h-8 flex items-center justify-center text-red-500 bg-red-50 rounded-[10px]">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -502,6 +553,134 @@ function ShelfCountingContent() {
         )}
 
       </div>
+
+      {/* Count Modal (Auto opens on scan) */}
+      <AnimatePresence>
+        {isCountModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setIsCountModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-5"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <h3 className="font-black text-gray-800 text-lg leading-tight">{productName}</h3>
+                  <span className="text-xs text-gray-400 font-bold mt-1">کد: {productCode}</span>
+                </div>
+                <button onClick={() => setIsCountModalOpen(false)} className="w-8 h-8 shrink-0 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {!isBlind && oldCount !== null && (
+                <div className="bg-teal-50/50 rounded-2xl p-3 border border-teal-100 flex items-center justify-between">
+                  <span className="text-xs font-bold text-teal-800">موجودی ثبت شده سیستم:</span>
+                  <span className="text-base font-black text-teal-600">{oldCount}</span>
+                </div>
+              )}
+              
+              <div className="flex flex-col items-center gap-4 py-2">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{editingItemId ? 'ویرایش موجودی' : 'ثبت موجودی جدید'}</span>
+                
+                <div className="flex items-center gap-4 w-full justify-center">
+                  <button 
+                    onClick={() => setNewCount(String(Math.max(0, Number(newCount || 0) - 1)))}
+                    className="w-14 h-14 bg-red-50 text-red-500 rounded-[20px] flex items-center justify-center hover:bg-red-100 active:scale-95 transition-all"
+                  >
+                    <Minus size={24} strokeWidth={3} />
+                  </button>
+                  
+                  <div 
+                    className="flex-1 max-w-[150px] relative"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                  >
+                    <input 
+                      type="number" 
+                      dir="ltr"
+                      value={newCount}
+                      onChange={(e) => setNewCount(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-gray-50 border-2 border-indigo-100 rounded-[24px] py-4 text-center text-4xl font-black text-gray-900 focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                    />
+                    <div className="absolute top-2 right-2 text-gray-300 pointer-events-none text-[10px] font-bold">بکشید</div>
+                  </div>
+
+                  <button 
+                    onClick={() => setNewCount(String(Number(newCount || 0) + 1))}
+                    className="w-14 h-14 bg-green-50 text-green-500 rounded-[20px] flex items-center justify-center hover:bg-green-100 active:scale-95 transition-all"
+                  >
+                    <Plus size={24} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleSubmitItem}
+                disabled={submitLoading || newCount === ''}
+                className="w-full bg-indigo-600 text-white py-4 rounded-[20px] text-sm font-black shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {submitLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (editingItemId ? 'بروزرسانی' : 'تایید و ثبت')}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel Modal */}
+      <AnimatePresence>
+        {isCancelModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setIsCancelModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ y: '100%', scale: 0.9 }} animate={{ y: 0, scale: 1 }} exit={{ y: '100%', scale: 0.9 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-4"
+            >
+              <div className="flex items-center gap-3 text-red-500 border-b border-gray-100 pb-3">
+                <AlertCircle size={24} strokeWidth={2.5} />
+                <h3 className="font-black text-gray-800 text-lg">لغو انبارگردانی</h3>
+              </div>
+              
+              <p className="text-xs font-bold text-gray-500 leading-relaxed">
+                در صورت انصراف، تمامی شمارش‌های انجام شده در این قفسه برای امروز لغو شده و وضعیت قفسه باز می‌گردد. لطفاً دلیل خود را بنویسید:
+              </p>
+              
+              <textarea 
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="مثال: پایان شیفت کاری"
+                className="w-full bg-gray-50 border border-gray-200 rounded-[16px] p-4 text-sm font-bold focus:outline-none focus:border-red-500 min-h-[100px] resize-none"
+              />
+
+              <div className="flex gap-3 mt-2">
+                <button 
+                  onClick={() => setIsCancelModalOpen(false)}
+                  className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-[16px] text-xs font-black hover:bg-gray-200 transition-colors"
+                >
+                  بازگشت
+                </button>
+                <button 
+                  onClick={handleCancelSubmit}
+                  className="flex-1 bg-red-500 text-white py-3.5 rounded-[16px] text-xs font-black hover:bg-red-600 transition-colors shadow-md shadow-red-500/20"
+                >
+                  تایید لغو و خروج
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Search Modal */}
       <AnimatePresence>

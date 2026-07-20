@@ -69,3 +69,40 @@ export async function GET(req) {
     return NextResponse.json({ error: 'خطا در دریافت اطلاعات' }, { status: 500 });
   }
 }
+
+export async function PUT(req) {
+  try {
+    const data = await req.json();
+    const { id, new_count } = data;
+    
+    if (!id || new_count === undefined) return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
+
+    const updated = await prisma.counting.update({
+      where: { id: Number(id) },
+      data: { new_count: Number(new_count) }
+    });
+    
+    return NextResponse.json({ success: true, count: updated });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'خطا در ویرایش' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    
+    if (!id) return NextResponse.json({ error: 'آیدی ارسال نشد' }, { status: 400 });
+
+    await prisma.counting.delete({
+      where: { id: Number(id) }
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'خطا در حذف' }, { status: 500 });
+  }
+}
