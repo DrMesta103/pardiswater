@@ -1,0 +1,91 @@
+
+> new@1.0.0 build
+> next build
+
+   ▲ Next.js 15.1.7
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: F:\WorkSpace\Pardis\pardisCounting\new\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/54) ...
+   Generating static pages (13/54) 
+   Generating static pages (26/54) 
+   Generating static pages (40/54) 
+ ✓ Generating static pages (54/54)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                       Size     First Load JS
+┌ ○ /                                             6 kB            154 kB
+├ ○ /_not-found                                   990 B           109 kB
+├ ○ /admin                                        4.05 kB         156 kB
+├ ○ /admin/about                                  8.66 kB         161 kB
+├ ○ /admin/danger-zone                            5.01 kB         157 kB
+├ ○ /admin/discrepancies                          7.74 kB         160 kB
+├ ○ /admin/locations                              7.51 kB         160 kB
+├ ○ /admin/logs                                   3.42 kB         156 kB
+├ ○ /admin/permissions                            5.92 kB         158 kB
+├ ○ /admin/products                               6.05 kB         158 kB
+├ ○ /admin/products/print-label                   3.56 kB         111 kB
+├ ○ /admin/reports                                3.22 kB         156 kB
+├ ○ /admin/settings                               7.94 kB         160 kB
+├ ○ /admin/stats                                  1.96 kB         154 kB
+├ ○ /admin/tasks                                  4.18 kB         159 kB
+├ ○ /admin/users                                  7.04 kB         159 kB
+├ ƒ /admin/users/[id]                             3.54 kB         156 kB
+├ ○ /admin/warehouses                             5.06 kB         157 kB
+├ ƒ /api/admin/reset-data                         228 B           108 kB
+├ ƒ /api/admin/stats                              228 B           108 kB
+├ ƒ /api/admin/tasks                              228 B           108 kB
+├ ƒ /api/admin/users                              228 B           108 kB
+├ ƒ /api/admin/users/[id]                         228 B           108 kB
+├ ƒ /api/auth/login                               228 B           108 kB
+├ ƒ /api/auth/webauthn/login/generate-options     228 B           108 kB
+├ ƒ /api/auth/webauthn/login/verify               228 B           108 kB
+├ ƒ /api/auth/webauthn/register/generate-options  228 B           108 kB
+├ ƒ /api/auth/webauthn/register/verify            228 B           108 kB
+├ ƒ /api/counting                                 228 B           108 kB
+├ ƒ /api/counting/[id]                            228 B           108 kB
+├ ƒ /api/counting/cancel                          228 B           108 kB
+├ ƒ /api/counting/end-shelf                       228 B           108 kB
+├ ƒ /api/counting/history                         228 B           108 kB
+├ ƒ /api/counting/product-locations               228 B           108 kB
+├ ƒ /api/hesabfa                                  228 B           108 kB
+├ ƒ /api/locations                                228 B           108 kB
+├ ƒ /api/locations/[id]                           228 B           108 kB
+├ ƒ /api/locations/active                         228 B           108 kB
+├ ƒ /api/locations/lock                           228 B           108 kB
+├ ƒ /api/locations/validate                       228 B           108 kB
+├ ƒ /api/logs                                     228 B           108 kB
+├ ƒ /api/reports/discrepancies                    228 B           108 kB
+├ ƒ /api/reports/leaderboard                      228 B           108 kB
+├ ƒ /api/reports/uncounted                        228 B           108 kB
+├ ƒ /api/settings                                 228 B           108 kB
+├ ƒ /api/tasks/create                             228 B           108 kB
+├ ƒ /api/tasks/my-task                            228 B           108 kB
+├ ƒ /api/user/settings                            228 B           108 kB
+├ ƒ /api/users                                    228 B           108 kB
+├ ○ /counting                                     2.72 kB         155 kB
+├ ○ /counting/item                                5.18 kB         315 kB
+├ ○ /counting/shelf                               7.58 kB         318 kB
+├ ○ /dashboard                                    4.17 kB         159 kB
+├ ○ /history                                      3.67 kB         304 kB
+├ ○ /scan                                         7.17 kB         160 kB
+└ ○ /settings                                     9.12 kB         162 kB
++ First Load JS shared by all                     108 kB
+  ├ chunks/4bd1b696-d21b759d63e17c46.js           53 kB
+  ├ chunks/7455-ad06b692867c55d8.js               52.9 kB
+  └ other shared chunks (total)                   2.05 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

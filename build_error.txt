@@ -1,0 +1,32 @@
+
+> new@1.0.0 build
+> next build
+
+   ▲ Next.js 15.1.7
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: F:\WorkSpace\Pardis\pardisCounting\new\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/54) ...
+Error occurred prerendering page "/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+ReferenceError: AnimatePresence is not defined
+    at f (F:\WorkSpace\Pardis\pardisCounting\new\.next\server\app\dashboard\page.js:1:11798)
+    at nO (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:45959)
+    at nI (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:47734)
+    at nL (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:65533)
+    at nN (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:63164)
+    at n$ (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:46311)
+    at nI (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:47780)
+    at nI (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:62515)
+    at nL (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:65533)
+    at nN (F:\WorkSpace\Pardis\pardisCounting\new\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:63164)
+Export encountered an error on /dashboard/page: /dashboard, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null

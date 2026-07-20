@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { History, ScanLine, ListChecks, AlertTriangle, Layers, MapPin, ClipboardList } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { History, ScanLine, ListChecks, AlertTriangle, Layers, MapPin, ClipboardList, Check } from 'lucide-react';
 
 export default function Dashboard() {
   const [uncountedShelves, setUncountedShelves] = useState([]);
