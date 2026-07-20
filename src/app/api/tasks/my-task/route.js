@@ -138,7 +138,7 @@ export async function GET(req) {
           }
           if (loc.warehouse) pathParts.unshift(`انبار ${loc.warehouse}`);
           
-          return { ...task, fullPath: pathParts.join(' / ') };
+          return { ...task, fullPath: pathParts.join(' / '), warehouse: loc.warehouse };
         }
       }
       return task;

@@ -115,7 +115,7 @@ export default function Dashboard() {
                   </div>
                   
                   <Link 
-                    href={task.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${task.targetId}` : `/counting/item?id=${task.targetId}`}
+                    href={task.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${task.targetId}&warehouse=${task.warehouse}` : `/counting/item?id=${task.targetId}`}
                     className="bg-indigo-600 text-white px-4 py-2.5 rounded-[12px] text-xs font-bold shadow-md hover:bg-indigo-700 transition-all shrink-0"
                   >
                     شروع

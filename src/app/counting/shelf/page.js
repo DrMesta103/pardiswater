@@ -402,7 +402,7 @@ function ShelfCountingContent() {
     }
   };
 
-  const isBlind = settings?.blind_counting && !hasRole(user?.roles, ['ADMIN', 'SUPERVISOR']);
+  const isBlind = settings?.blind_counting === 'true' && !hasRole(user?.roles, ['ADMIN', 'SUPERVISOR']);
 
   if (loading) {
     return (
