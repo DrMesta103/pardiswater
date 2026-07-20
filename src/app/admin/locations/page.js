@@ -8,6 +8,7 @@ export default function AdminLocations() {
   const [locations, setLocations] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [listWarehouseFilter, setListWarehouseFilter] = useState('');
   
   const [title, setTitle] = useState('');
   
@@ -224,6 +225,18 @@ export default function AdminLocations() {
           
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-gray-800 text-sm">لیست {nextLevelName}‌ها <span className="text-gray-400 font-medium text-xs">({locations.length})</span></h3>
+            {currentDepth === 0 && warehouses.length > 0 && (
+              <select 
+                value={listWarehouseFilter}
+                onChange={e => setListWarehouseFilter(e.target.value)}
+                className="bg-white border border-gray-200 text-xs font-bold text-gray-600 rounded-[12px] px-3 py-1.5 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">همه انبارها</option>
+                {warehouses.map(wh => (
+                  <option key={wh.id} value={wh.id}>{wh.name}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {fetching ? (
@@ -233,7 +246,9 @@ export default function AdminLocations() {
           ) : (
             <div className="flex flex-col gap-3">
               <AnimatePresence>
-                {locations.map((loc) => {
+                {locations
+                  .filter(loc => currentDepth === 0 && listWarehouseFilter ? loc.warehouse === parseInt(listWarehouseFilter) : true)
+                  .map((loc) => {
                   const hasData = loc._count?.countings > 0;
                   const hasChildren = loc._count?.children > 0;
                   
@@ -252,9 +267,17 @@ export default function AdminLocations() {
                           </div>
                           <div className="flex flex-col">
                             <span className="font-black text-base text-gray-800">{loc.type} {loc.title}</span>
-                            <span className="text-[10px] text-gray-400 font-bold mt-0.5 tracking-wider">
+                            <span className="text-[10px] text-gray-400 font-bold mt-0.5 tracking-wider leading-relaxed">
                               کد: <span className="text-indigo-500">{loc.code}</span>
                               {loc.warehouse ? ` • انبار: ${loc.warehouse}` : ''}
+                              {loc.parent && ` • مسیر: ${
+                                (function getPath(p) {
+                                  let path = [];
+                                  let curr = p;
+                                  while(curr) { path.unshift(curr.title); curr = curr.parent; }
+                                  return path.join(' / ');
+                                })(loc.parent)
+                              }`}
                             </span>
                           </div>
                         </div>
@@ -347,16 +370,18 @@ export default function AdminLocations() {
               </div>
               
               <div className="flex flex-col gap-4">
-                <select
-                  value={selectedWarehouse}
-                  onChange={(e) => setSelectedWarehouse(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-4 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-                >
-                  <option value="" disabled>انبار را انتخاب کنید...</option>
-                  {warehouses.map(wh => (
-                    <option key={wh.id} value={wh.id}>{wh.name} (کد: {wh.id})</option>
-                  ))}
-                </select>
+                {currentDepth === 0 && (
+                  <select
+                    value={selectedWarehouse}
+                    onChange={(e) => setSelectedWarehouse(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-4 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+                  >
+                    <option value="" disabled>انبار را انتخاب کنید...</option>
+                    {warehouses.map(wh => (
+                      <option key={wh.id} value={wh.id}>{wh.name} (کد: {wh.id})</option>
+                    ))}
+                  </select>
+                )}
                 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs text-gray-500 font-bold">عنوان {nextLevelName}</label>

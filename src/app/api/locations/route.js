@@ -7,7 +7,11 @@ export async function GET(req) {
     const parentId = searchParams.get('parentId');
     
     let where = {};
-    if (parentId === 'null' || !parentId) {
+    const level = searchParams.get('level');
+    
+    if (level) {
+      where.level = parseInt(level, 10);
+    } else if (parentId === 'null' || !parentId) {
       where.parentId = null;
     } else {
       where.parentId = parseInt(parentId, 10);
@@ -17,6 +21,13 @@ export async function GET(req) {
       where,
       include: { 
         _count: { select: { countings: true, children: true } },
+        parent: {
+          include: {
+            parent: {
+              include: { parent: true }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'asc' }
     });
@@ -36,12 +47,14 @@ export async function POST(req) {
 
     let code = title.toUpperCase();
     let level = 1;
+    let finalWarehouse = warehouse ? parseInt(warehouse, 10) : null;
 
     if (parentId) {
       const parent = await prisma.location.findUnique({ where: { id: parseInt(parentId, 10) } });
       if (parent) {
         code = parent.code + title.toUpperCase();
         level = parent.level + 1;
+        finalWarehouse = parent.warehouse; // Inherit warehouse from parent
       }
     }
 
@@ -52,7 +65,7 @@ export async function POST(req) {
         type,
         level,
         parentId: parentId ? parseInt(parentId, 10) : null,
-        warehouse: warehouse ? parseInt(warehouse, 10) : null
+        warehouse: finalWarehouse
       }
     });
 
