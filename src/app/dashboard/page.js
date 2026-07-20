@@ -133,14 +133,29 @@ export default function Dashboard() {
             </Link>
           </motion.div>
           
+          {/* Free Count Section */}
           <motion.div variants={item}>
-            <Link href="/scan" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-sm p-6 flex flex-col items-center justify-center aspect-square gap-3 hover:bg-white hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50/50 rounded-bl-full -z-0"></div>
-              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-1 relative z-10">
-                <ScanLine strokeWidth={2.5} size={24} />
+            {settings?.task_mode_location || settings?.task_mode_item ? (
+              <div className="bg-white/40 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-sm p-6 flex flex-col items-center justify-center aspect-square gap-3 relative overflow-hidden opacity-70 cursor-not-allowed">
+                <div className="w-12 h-12 bg-gray-100 text-gray-400 rounded-2xl flex items-center justify-center mb-1">
+                  <ScanLine strokeWidth={2.5} size={24} />
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-black text-xs text-gray-500">شمارش آزاد</span>
+                  <span className="text-[9px] font-bold text-red-400 text-center leading-tight mt-1 px-1">
+                    غیرفعال: انبارگردانی تسک‌محور فعال است
+                  </span>
+                </div>
               </div>
-              <span className="font-black text-xs text-gray-800 relative z-10">شمارش آزاد</span>
-            </Link>
+            ) : (
+              <Link href="/scan" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-sm p-6 flex flex-col items-center justify-center aspect-square gap-3 hover:bg-white hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50/50 rounded-bl-full -z-0"></div>
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-1 relative z-10">
+                  <ScanLine strokeWidth={2.5} size={24} />
+                </div>
+                <span className="font-black text-xs text-gray-800 relative z-10">شمارش آزاد</span>
+              </Link>
+            )}
           </motion.div>
         </div>
         

@@ -2,7 +2,7 @@
 import Header from '@/components/Header';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Layers, Users, BarChart3, Settings, AlertTriangle, UserCog, Activity, Box, Map, LayoutGrid, AlertCircle, Info } from 'lucide-react';
+import { Layers, Users, BarChart3, Settings, AlertTriangle, UserCog, Activity, Box, Map, LayoutGrid, AlertCircle, Info, Shield } from 'lucide-react';
 
 export default function AdminDashboard() {
   
@@ -108,6 +108,18 @@ export default function AdminDashboard() {
               </div>
             </Link>
 
+            <Link href="/admin/tasks" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-blue-200 hover:shadow-md transition-all active:scale-95">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-[12px] flex items-center justify-center">
+                  <Activity strokeWidth={2} size={20} />
+                </div>
+                <span className="font-extrabold text-sm text-gray-800">مدیریت تسک‌ها</span>
+              </div>
+              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </Link>
+
             <Link href="/admin/logs" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-gray-300 hover:shadow-md transition-all active:scale-95">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-[12px] flex items-center justify-center">
@@ -120,6 +132,18 @@ export default function AdminDashboard() {
               </div>
             </Link>
             
+            <Link href="/admin/permissions" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-emerald-200 hover:shadow-md transition-all active:scale-95">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-[12px] flex items-center justify-center">
+                  <Shield strokeWidth={2} size={20} />
+                </div>
+                <span className="font-extrabold text-sm text-gray-800">سطح دسترسی</span>
+              </div>
+              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </Link>
+
             <Link href="/admin/danger-zone" className="bg-white border border-red-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:bg-red-50 hover:border-red-200 transition-all active:scale-95">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-red-100 text-red-500 rounded-[12px] flex items-center justify-center">

@@ -181,7 +181,7 @@ export default function AdminLocations() {
     <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="مدیریت قفسه‌ها و سطوح" showBack={true} />
       
-      <div className="flex-1 p-5 flex flex-col gap-6 max-w-md mx-auto w-full mt-2">
+      <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
         
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide text-sm font-bold text-gray-600">
