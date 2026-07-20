@@ -16,17 +16,22 @@ export default function HistoryPage() {
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [filterMode, setFilterMode] = useState('ALL'); // ALL, SHELF, ITEM
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    if (userData) setUser(JSON.parse(userData));
-    
-    fetchData();
+    if (userData) {
+      const u = JSON.parse(userData);
+      setUser(u);
+      fetchData(u.id);
+    }
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (userId) => {
+    if (!userId) return;
     try {
       const [histRes, setRes] = await Promise.all([
-        fetch('/api/counting'),
+        fetch(`/api/counting?user_id=${userId}`),
         fetch('/api/settings')
       ]);
       
@@ -83,16 +88,38 @@ export default function HistoryPage() {
             <p className="font-bold text-gray-500 text-sm">هیچ رکورد انبارگردانی یافت نشد.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between px-2 mb-2">
-              <h3 className="font-black text-gray-800 text-sm">آخرین رکوردهای ثبت شده</h3>
+          <div className="flex flex-col gap-4">
+            {/* Filter Tabs */}
+            <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-gray-100">
+              <button 
+                onClick={() => setFilterMode('ALL')} 
+                className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all ${filterMode === 'ALL' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                همه رکوردها
+              </button>
+              <button 
+                onClick={() => setFilterMode('SHELF')} 
+                className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all ${filterMode === 'SHELF' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                قفسه‌ای
+              </button>
+              <button 
+                onClick={() => setFilterMode('ITEM')} 
+                className={`flex-1 text-xs font-bold py-2.5 rounded-xl transition-all ${filterMode === 'ITEM' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`}
+              >
+                کالایی
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between px-2 mb-1">
+              <h3 className="font-black text-gray-800 text-sm">لیست شمارش‌های شما</h3>
               <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black">
-                {counts.length} رکورد
+                {counts.filter(c => filterMode === 'ALL' ? true : c.mode === filterMode).length} رکورد
               </span>
             </div>
 
             <AnimatePresence>
-              {counts.map(count => {
+              {counts.filter(c => filterMode === 'ALL' ? true : c.mode === filterMode).map(count => {
                 const isEditing = editingId === count.id;
                 
                 return (
@@ -129,8 +156,8 @@ export default function HistoryPage() {
                           قفسه: <span className="text-gray-800 uppercase tracking-widest">{count.shelfCode || count.shelf || 'ثبت نشده'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
-                          <User size={12} className="text-gray-400" />
-                          شمارنده: <span className="text-gray-800">{count.user?.name || 'نامشخص'}</span>
+                          <Box size={12} className="text-gray-400" />
+                          حالت: <span className="text-gray-800">{count.mode === 'SHELF' ? 'قفسه‌ای' : count.mode === 'ITEM' ? 'کالایی' : count.mode}</span>
                         </div>
                       </div>
                       
