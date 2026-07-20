@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Users, Check, XCircle, Search, ShieldAlert, BarChart2 } from 'lucide-react';
+import { Users, Check, XCircle, Search, ShieldAlert, BarChart2, Plus, UserPlus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -11,6 +11,10 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(null); // id of user being saved
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
+  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', username: '', mobile: '', password: '' });
 
   const availableRoles = [
     { id: 'ADMIN', label: 'مدیر' },
@@ -71,6 +75,36 @@ export default function UsersPage() {
     }
   };
 
+  const handleAddUser = async () => {
+    if (!newUser.username || !newUser.password) {
+      showToast('نام کاربری و رمز عبور الزامی است', true);
+      return;
+    }
+    
+    setIsAdding(true);
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setUsers([data, ...users]);
+        showToast('کاربر جدید با موفقیت اضافه شد');
+        setIsAddModalOpen(false);
+        setNewUser({ name: '', username: '', mobile: '', password: '' });
+      } else {
+        showToast(data.error || 'خطا در ایجاد کاربر', true);
+      }
+    } catch (e) {
+      showToast('خطای شبکه', true);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.name?.includes(search) || u.username?.includes(search) || u.mobile?.includes(search)
   );
@@ -91,14 +125,23 @@ export default function UsersPage() {
       <Header title="مدیریت کاربران" showBack={true} />
 
       <div className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-2xl mx-auto w-full mt-2">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
-            <Users className="text-indigo-600" size={24} strokeWidth={2.5} />
-            لیست کاربران سیستم
-          </h2>
-          <p className="text-xs text-gray-500 font-medium leading-relaxed">
-            تعیین نقش‌های کاربران و مشاهده آمار انبارگردانی آن‌ها
-          </p>
+        <div className="flex justify-between items-start">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-black text-gray-800 tracking-tight flex items-center gap-2">
+              <Users className="text-indigo-600" size={24} strokeWidth={2.5} />
+              لیست کاربران سیستم
+            </h2>
+            <p className="text-xs text-gray-500 font-medium leading-relaxed">
+              تعیین نقش‌های کاربران و مشاهده آمار انبارگردانی آن‌ها
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-indigo-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20 hover:bg-indigo-700 hover:scale-105 transition-all"
+          >
+            <UserPlus size={20} strokeWidth={2.5} />
+          </button>
         </div>
 
         <Link 
@@ -211,6 +254,87 @@ export default function UsersPage() {
           >
             {toast.isError ? <XCircle size={14} /> : <Check size={14} />}
             {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setIsAddModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-4"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+                  <UserPlus size={20} className="text-indigo-600" />
+                  افزودن کاربر جدید
+                </h3>
+                <button onClick={() => setIsAddModalOpen(false)} className="bg-gray-100 text-gray-500 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-200">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 px-1">نام و نام خانوادگی</label>
+                <input 
+                  type="text" 
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  placeholder="محمد محمدی"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 px-1">شماره موبایل</label>
+                <input 
+                  type="tel" 
+                  dir="ltr"
+                  value={newUser.mobile}
+                  onChange={(e) => setNewUser({...newUser, mobile: e.target.value})}
+                  placeholder="0912..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-left focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 px-1">نام کاربری <span className="text-red-500">*</span></label>
+                <input 
+                  type="text" 
+                  dir="ltr"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                  placeholder="user123"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-left focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600 px-1">رمز عبور <span className="text-red-500">*</span></label>
+                <input 
+                  type="password" 
+                  dir="ltr"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  placeholder="******"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-left focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <button 
+                onClick={handleAddUser}
+                disabled={isAdding || !newUser.username || !newUser.password}
+                className="w-full mt-2 bg-indigo-600 text-white py-3.5 rounded-[16px] text-sm font-black hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20"
+              >
+                {isAdding ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'ایجاد کاربر'}
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
