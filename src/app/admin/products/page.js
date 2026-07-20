@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import { PackageSearch, Search, AlertCircle, Box, Layers, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,10 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // 'all', 'in-stock', 'out-of-stock'
-
+  const [visibleCount, setVisibleCount] = useState(20);
+  
+  const observer = useRef();
+  
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -23,7 +26,6 @@ export default function ProductsPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // Safely extract the array of products from the Hesabfa response
         const productList = data?.Result?.List || data?.List || (Array.isArray(data) ? data : []);
         setProducts(productList);
       } else {
@@ -45,6 +47,24 @@ export default function ProductsPage() {
     
     return matchesSearch && matchesFilter;
   });
+
+  const displayedProducts = filteredProducts.slice(0, visibleCount);
+
+  const lastElementRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && visibleCount < filteredProducts.length) {
+        setVisibleCount(prev => prev + 20);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, visibleCount, filteredProducts.length]);
+
+  // Reset pagination on filter or search
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [search, filter]);
 
   if (loading) {
     return (
@@ -123,50 +143,60 @@ export default function ProductsPage() {
         {/* Products List */}
         <div className="flex flex-col gap-3">
           <AnimatePresence>
-            {filteredProducts.map((p) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                key={p.Code} 
-                className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-5 rounded-[20px] border border-gray-200 bg-white shadow-sm gap-4"
-              >
-                <div className="flex items-start md:items-center gap-4">
-                  <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
-                    <Box size={24} strokeWidth={1.5} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-bold text-gray-800 leading-tight">{p.Name}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500 font-bold dir-ltr flex items-center gap-1">
-                        <span className="text-gray-400 font-normal">کد:</span> {p.Code}
-                      </span>
-                      {p.Barcode && (
-                        <span className="text-xs text-gray-500 font-bold dir-ltr flex items-center gap-1 border-r border-gray-200 pr-3">
-                          <span className="text-gray-400 font-normal">بارکد:</span> {p.Barcode}
+            {displayedProducts.map((p, index) => {
+              const isLastElement = index === displayedProducts.length - 1;
+              return (
+                <motion.div 
+                  ref={isLastElement ? lastElementRef : null}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={p.Code} 
+                  className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-5 rounded-[20px] border border-gray-200 bg-white shadow-sm gap-4"
+                >
+                  <div className="flex items-start md:items-center gap-4">
+                    <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0">
+                      <Box size={24} strokeWidth={1.5} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-gray-800 leading-tight">{p.Name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 font-bold dir-ltr flex items-center gap-1">
+                          <span className="text-gray-400 font-normal">کد:</span> {p.Code}
                         </span>
-                      )}
+                        {p.Barcode && (
+                          <span className="text-xs text-gray-500 font-bold dir-ltr flex items-center gap-1 border-r border-gray-200 pr-3">
+                            <span className="text-gray-400 font-normal">بارکد:</span> {p.Barcode}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-between md:justify-end gap-6 bg-gray-50 md:bg-transparent p-3 md:p-0 rounded-[16px]">
-                  <div className="flex flex-col items-center md:items-end">
-                    <span className="text-[10px] font-bold text-gray-400 mb-0.5">موجودی سیستم</span>
-                    <span className={`text-lg font-black ${p.Stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      {p.Stock} <span className="text-xs font-bold text-gray-500">{p.Unit || 'عدد'}</span>
-                    </span>
+                  
+                  <div className="flex items-center justify-between md:justify-end gap-6 bg-gray-50 md:bg-transparent p-3 md:p-0 rounded-[16px]">
+                    <div className="flex flex-col items-center md:items-end">
+                      <span className="text-[10px] font-bold text-gray-400 mb-0.5">موجودی سیستم</span>
+                      <span className={`text-lg font-black ${p.Stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {p.Stock} <span className="text-xs font-bold text-gray-500">{p.Unit || 'عدد'}</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center md:items-end border-r border-gray-200 pr-6">
+                      <span className="text-[10px] font-bold text-gray-400 mb-0.5">فی فروش</span>
+                      <span className="text-sm font-black text-gray-700">
+                        {p.SalesPrice?.toLocaleString()} <span className="text-[10px] text-gray-400">تومان</span>
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center md:items-end border-r border-gray-200 pr-6">
-                    <span className="text-[10px] font-bold text-gray-400 mb-0.5">فی فروش</span>
-                    <span className="text-sm font-black text-gray-700">
-                      {p.SalesPrice?.toLocaleString()} <span className="text-[10px] text-gray-400">تومان</span>
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
           
+          {visibleCount < filteredProducts.length && (
+            <div className="py-4 flex justify-center">
+              <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+
           {filteredProducts.length === 0 && (
             <div className="text-center py-12 bg-white rounded-[24px] border border-dashed border-gray-300 flex flex-col items-center gap-3">
               <AlertCircle className="text-gray-300" size={32} />
@@ -179,3 +209,4 @@ export default function ProductsPage() {
     </div>
   );
 }
+

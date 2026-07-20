@@ -234,6 +234,51 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Task Mode Settings */}
+          <div className="border-t border-gray-50 pt-8 flex flex-col gap-5 relative">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-[12px] bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <Layers size={16} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-sm font-bold text-gray-800">انبارگردانی تسک‌محور (سیستمی)</h2>
+            </div>
+            
+            {(settings.task_mode_location || settings.task_mode_item) && (
+              <div className="bg-amber-50 text-amber-700 text-[11px] p-3 rounded-[12px] border border-amber-200 flex items-start gap-2 mb-2 font-bold leading-relaxed">
+                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  توجه: با فعال شدن این حالت، کاربران در داشبورد خود موظف به انجام تسک‌های سیستم هستند. در این صورت پیشنهادهای خودکار و همچنین امکان شمارش آزاد (اگر خاموش کنید) تحت تاثیر قرار می‌گیرد و اولویت با تسک محول شده است.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-gray-800 leading-relaxed font-bold">تسک‌محور برای قفسه</p>
+                <p className="text-[10px] text-gray-400">ارجاع هوشمند قفسه‌ها به کاربران بدون تداخل</p>
+              </div>
+              <button 
+                onClick={() => setSettings(s => ({ ...s, task_mode_location: !s.task_mode_location }))}
+                className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none ${settings.task_mode_location ? 'bg-purple-600' : 'bg-gray-200'}`}
+              >
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${settings.task_mode_location ? '-translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-gray-800 leading-relaxed font-bold">تسک‌محور برای کالا</p>
+                <p className="text-[10px] text-gray-400">ارجاع هوشمند کالاها به کاربران</p>
+              </div>
+              <button 
+                onClick={() => setSettings(s => ({ ...s, task_mode_item: !s.task_mode_item }))}
+                className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none ${settings.task_mode_item ? 'bg-purple-600' : 'bg-gray-200'}`}
+              >
+                <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${settings.task_mode_item ? '-translate-x-6' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+
           {/* Correction Roles Setting */}
           <div>
             <div className="flex items-center gap-2 mb-2">

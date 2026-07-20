@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { History, ScanLine, ListChecks, AlertTriangle, Layers, MapPin } from 'lucide-react';
+import { History, ScanLine, ListChecks, AlertTriangle, Layers, MapPin, ClipboardList } from 'lucide-react';
 
 export default function Dashboard() {
   const [uncountedShelves, setUncountedShelves] = useState([]);
   const [activeSessions, setActiveSessions] = useState([]);
   const [settings, setSettings] = useState(null);
   const [user, setUser] = useState(null);
+  const [systemTask, setSystemTask] = useState(null);
   
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -30,19 +31,28 @@ export default function Dashboard() {
         setSettings(currentSettings);
       }
 
+      if (currentUser?.id) {
+        // Fetch System Task
+        const taskRes = await fetch(`/api/tasks/my-task?userId=${currentUser.id}`);
+        if (taskRes.ok) {
+          const taskData = await taskRes.json();
+          if (taskData.task) {
+            setSystemTask(taskData.task);
+          }
+        }
+
+        const actRes = await fetch(`/api/locations/active?userId=${currentUser.id}`);
+        if (actRes.ok) {
+          const actData = await actRes.json();
+          setActiveSessions(actData.active || []);
+        }
+      }
+
       if (currentSettings.show_suggested_shelves !== false) {
         const uncRes = await fetch(`/api/reports/uncounted?days=${currentSettings.uncounted_shelf_days || 10}`);
         if (uncRes.ok) {
           const uncData = await uncRes.json();
           setUncountedShelves(uncData.uncounted || []);
-        }
-      }
-
-      if (currentUser?.id) {
-        const actRes = await fetch(`/api/locations/active?userId=${currentUser.id}`);
-        if (actRes.ok) {
-          const actData = await actRes.json();
-          setActiveSessions(actData.active || []);
         }
       }
     } catch (e) {
@@ -73,6 +83,44 @@ export default function Dashboard() {
         animate="show"
         className="p-4 md:p-6 flex flex-col gap-6 max-w-lg mx-auto w-full mt-2"
       >
+        {/* System Assigned Task */}
+        {systemTask && (
+          <motion.div variants={item} className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-[24px] p-1 shadow-lg shadow-purple-500/30">
+            <div className="bg-white/10 backdrop-blur-md rounded-[20px] p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white">
+                  <ClipboardList size={20} strokeWidth={2.5} />
+                  <h3 className="text-sm font-black tracking-tight">تسک محول شده سیستم</h3>
+                </div>
+                <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-sm border border-white/20">
+                  الزامی
+                </span>
+              </div>
+              
+              <div className="bg-white/95 rounded-[16px] p-4 flex items-center justify-between shadow-inner">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
+                    {systemTask.type === 'SYSTEM_LOCATION' ? <Layers size={24} /> : <ScanLine size={24} />}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-500 font-bold mb-0.5">
+                      {systemTask.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
+                    </span>
+                    <span className="text-base font-black text-gray-900 uppercase tracking-widest">{systemTask.targetName}</span>
+                  </div>
+                </div>
+                
+                <Link 
+                  href={systemTask.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${systemTask.targetId}` : `/counting/item?id=${systemTask.targetId}`}
+                  className="bg-purple-600 text-white px-5 py-3 rounded-[14px] text-xs font-black shadow-md hover:bg-purple-700 hover:shadow-lg transition-all"
+                >
+                  شروع تسک
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <motion.div variants={item}>
             <Link href="/history" className="bg-white/80 backdrop-blur-sm border border-gray-100 rounded-3xl shadow-sm p-6 flex flex-col items-center justify-center aspect-square gap-3 hover:bg-white hover:scale-[1.02] active:scale-95 transition-all">
@@ -89,13 +137,13 @@ export default function Dashboard() {
               <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-1 relative z-10">
                 <ScanLine strokeWidth={2.5} size={24} />
               </div>
-              <span className="font-black text-xs text-gray-800 relative z-10">شروع انبارگردانی</span>
+              <span className="font-black text-xs text-gray-800 relative z-10">شمارش آزاد</span>
             </Link>
           </motion.div>
         </div>
         
         {/* Active Sessions */}
-        {activeSessions.length > 0 && (
+        {activeSessions.length > 0 && !systemTask && (
           <motion.div variants={item} className="flex flex-col gap-3 mt-2">
             <h3 className="text-sm font-black text-gray-800 flex items-center gap-2 px-2">
               <span className="relative flex h-3 w-3">
@@ -130,7 +178,7 @@ export default function Dashboard() {
         )}
 
         {/* Suggested Shelves to count */}
-        {settings?.show_suggested_shelves !== false && uncountedShelves.length > 0 && (
+        {settings?.show_suggested_shelves !== false && uncountedShelves.length > 0 && !systemTask && (
           <motion.div variants={item} className="flex flex-col gap-3 mt-4">
             <div className="flex items-center justify-between px-2">
               <h3 className="text-sm font-black text-gray-800 flex items-center gap-2">
