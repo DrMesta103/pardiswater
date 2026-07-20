@@ -106,10 +106,10 @@ export default function Dashboard() {
                   {task.type === 'SYSTEM_LOCATION' ? <Layers size={20} /> : <ScanLine size={20} />}
                 </div>
                 <div className="flex flex-col">
-                  <span className={`text-[10px] font-bold mb-0.5 ${isCompleted ? 'text-gray-400' : 'text-gray-400'}`}>
+                  <span className={`text-[10px] font-bold mb-0.5 ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>
                     {task.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
                   </span>
-                  <span className={`text-sm font-black tracking-widest ${isCompleted ? 'text-gray-500' : 'text-[#292929]'}`}>
+                  <span className={`text-[11px] font-bold leading-relaxed ${isCompleted ? 'text-gray-500' : 'text-[#292929]'}`}>
                     آدرس: {task.fullPath || task.targetName}
                   </span>
                 </div>
