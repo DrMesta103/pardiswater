@@ -8,6 +8,9 @@ export async function POST(req) {
     
     // Delete all locations
     await prisma.location.deleteMany({});
+    
+    // Delete all tasks
+    await prisma.task.deleteMany({});
 
     return NextResponse.json({ success: true, message: 'دیتا با موفقیت پاک شد' });
   } catch (error) {

@@ -413,63 +413,18 @@ export default function SettingsPage() {
           )}
         </motion.button>
         
-        {/* Danger Zone */}
-        <div className="mt-8 border-t border-gray-200 pt-8 flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-black text-red-600 flex items-center gap-2">
-              <AlertCircle size={18} strokeWidth={2.5} />
-              منطقه خطر (Danger Zone)
-            </h3>
-            <p className="text-xs text-gray-500 font-bold leading-relaxed">
-              شما می‌توانید تمام اطلاعات مربوط به انبارگردانی (کالاهای شمارش‌شده) و ساختار قفسه‌بندی (سطوح انبار) را پاک کنید. اطلاعات کالاها، انبارها و کاربران دست نخورده باقی می‌ماند.
-            </p>
-          </div>
-          <button 
-            onClick={() => setIsResetModalOpen(true)}
-            className="w-full bg-red-50 text-red-600 border border-red-100 py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition-all"
-          >
-            <Trash2 size={18} />
-            پاک کردن دیتا شمارش و قفسه‌ها
-          </button>
-        </div>
       </div>
 
       <AnimatePresence>
-        {isResetModalOpen && (
+        {toast.show && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-5"
-            onClick={() => setIsResetModalOpen(false)}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl shadow-xl backdrop-blur-3xl border text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 ${toast.isError ? 'bg-red-50/90 border-red-100 text-red-600' : 'bg-white/90 border-gray-100 text-gray-800'}`}
           >
-            <motion.div 
-              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-sm bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-4"
-            >
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                <AlertCircle size={32} strokeWidth={2} />
-              </div>
-              <h3 className="font-black text-gray-800 text-lg text-center">آیا مطمئن هستید؟</h3>
-              <p className="text-xs text-gray-500 font-bold text-center leading-relaxed">
-                این عملیات غیرقابل بازگشت است. تمام قفسه‌ها، سطوح، و داده‌های شمارش‌شده به طور کامل از سیستم حذف خواهند شد.
-              </p>
-              
-              <div className="flex gap-3 mt-2">
-                <button 
-                  onClick={() => setIsResetModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-[16px] text-sm font-black hover:bg-gray-200 transition-colors"
-                >
-                  انصراف
-                </button>
-                <button 
-                  onClick={handleResetData}
-                  disabled={resetting}
-                  className="flex-1 bg-red-500 text-white py-3.5 rounded-[16px] text-sm font-black flex items-center justify-center hover:bg-red-600 transition-colors disabled:opacity-50"
-                >
-                  {resetting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'بله، پاک کن'}
-                </button>
-              </div>
-            </motion.div>
+            {toast.isError ? <XCircle size={14} /> : <Check size={14} />}
+            {toast.message}
           </motion.div>
         )}
       </AnimatePresence>

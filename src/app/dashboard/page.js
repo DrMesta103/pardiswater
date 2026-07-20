@@ -10,7 +10,7 @@ export default function Dashboard() {
   const [activeSessions, setActiveSessions] = useState([]);
   const [settings, setSettings] = useState(null);
   const [user, setUser] = useState(null);
-  const [systemTask, setSystemTask] = useState(null);
+  const [systemTasks, setSystemTasks] = useState([]);
   
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -32,12 +32,12 @@ export default function Dashboard() {
       }
 
       if (currentUser?.id) {
-        // Fetch System Task
+        // Fetch System Tasks
         const taskRes = await fetch(`/api/tasks/my-task?userId=${currentUser.id}`);
         if (taskRes.ok) {
           const taskData = await taskRes.json();
-          if (taskData.task) {
-            setSystemTask(taskData.task);
+          if (taskData.tasks && taskData.tasks.length > 0) {
+            setSystemTasks(taskData.tasks);
           }
         }
 
@@ -83,40 +83,42 @@ export default function Dashboard() {
         animate="show"
         className="p-4 md:p-6 flex flex-col gap-6 max-w-lg mx-auto w-full mt-2"
       >
-        {/* System Assigned Task */}
-        {systemTask && (
-          <motion.div variants={item} className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-[24px] p-1 shadow-lg shadow-purple-500/30">
-            <div className="bg-white/10 backdrop-blur-md rounded-[20px] p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-white">
-                  <ClipboardList size={20} strokeWidth={2.5} />
-                  <h3 className="text-sm font-black tracking-tight">تسک محول شده سیستم</h3>
-                </div>
-                <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-sm border border-white/20">
-                  الزامی
-                </span>
+        {/* System Assigned Tasks (Minimal) */}
+        {systemTasks.length > 0 && (
+          <motion.div variants={item} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2 text-indigo-700">
+                <ClipboardList size={18} strokeWidth={2.5} />
+                <h3 className="text-sm font-black tracking-tight">تسک‌های محول شده سیستم</h3>
               </div>
-              
-              <div className="bg-white/95 rounded-[16px] p-4 flex items-center justify-between shadow-inner">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
-                    {systemTask.type === 'SYSTEM_LOCATION' ? <Layers size={24} /> : <ScanLine size={24} />}
+              <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-[10px] font-bold">
+                {systemTasks.length} تسک فعال
+              </span>
+            </div>
+            
+            <div className="grid gap-3">
+              {systemTasks.map((task, idx) => (
+                <div key={task.id || idx} className="bg-white border-2 border-indigo-100 rounded-[20px] p-3 flex items-center justify-between shadow-sm hover:border-indigo-300 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                      {task.type === 'SYSTEM_LOCATION' ? <Layers size={20} /> : <ScanLine size={20} />}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-gray-500 font-bold mb-0.5">
+                        {task.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
+                      </span>
+                      <span className="text-sm font-black text-gray-900 uppercase tracking-widest">{task.targetName}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-500 font-bold mb-0.5">
-                      {systemTask.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
-                    </span>
-                    <span className="text-base font-black text-gray-900 uppercase tracking-widest">{systemTask.targetName}</span>
-                  </div>
+                  
+                  <Link 
+                    href={task.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${task.targetId}` : `/counting/item?id=${task.targetId}`}
+                    className="bg-indigo-600 text-white px-4 py-2.5 rounded-[12px] text-xs font-bold shadow-md hover:bg-indigo-700 transition-all shrink-0"
+                  >
+                    شروع
+                  </Link>
                 </div>
-                
-                <Link 
-                  href={systemTask.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${systemTask.targetId}` : `/counting/item?id=${systemTask.targetId}`}
-                  className="bg-purple-600 text-white px-5 py-3 rounded-[14px] text-xs font-black shadow-md hover:bg-purple-700 hover:shadow-lg transition-all"
-                >
-                  شروع تسک
-                </Link>
-              </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -143,7 +145,7 @@ export default function Dashboard() {
         </div>
         
         {/* Active Sessions */}
-        {activeSessions.length > 0 && !systemTask && (
+        {activeSessions.length > 0 && systemTasks.length === 0 && (
           <motion.div variants={item} className="flex flex-col gap-3 mt-2">
             <h3 className="text-sm font-black text-gray-800 flex items-center gap-2 px-2">
               <span className="relative flex h-3 w-3">
@@ -178,7 +180,7 @@ export default function Dashboard() {
         )}
 
         {/* Suggested Shelves to count */}
-        {settings?.show_suggested_shelves !== false && uncountedShelves.length > 0 && !systemTask && (
+        {settings?.show_suggested_shelves !== false && uncountedShelves.length > 0 && systemTasks.length === 0 && (
           <motion.div variants={item} className="flex flex-col gap-3 mt-4">
             <div className="flex items-center justify-between px-2">
               <h3 className="text-sm font-black text-gray-800 flex items-center gap-2">
