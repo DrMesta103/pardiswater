@@ -79,7 +79,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="لیست محصولات" showBack={true} />
 
       <div className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-4xl mx-auto w-full mt-2">

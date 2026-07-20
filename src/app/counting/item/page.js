@@ -198,7 +198,7 @@ function ItemCountingContent() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="انبارگردانی کالا" showBack={true} />
       
       {/* Top Fixed Info Bar */}

@@ -1,10 +1,39 @@
 'use client';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Layers, Users, BarChart3, Settings, AlertTriangle, UserCog, Activity, Box, Map, LayoutGrid, AlertCircle, Info, Shield } from 'lucide-react';
+import { Layers, Users, BarChart3, Settings, AlertTriangle, UserCog, Activity, Box, Map, LayoutGrid, AlertCircle, Info, Shield, Lock } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const [user, setUser] = useState(null);
+  const [permissions, setPermissions] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      // If user doesn't have ANY admin/staff roles, boot them
+      if (!parsedUser.roles || parsedUser.roles.length === 0) {
+        router.push('/dashboard');
+      }
+    } else {
+      router.push('/');
+    }
+
+    fetch('/api/settings').then(res => res.json()).then(data => {
+      setPermissions(data.admin_permissions || {});
+    });
+  }, [router]);
+
+  const hasPermission = (sectionId) => {
+    if (!user || !permissions) return false; // Loading
+    if (user.roles?.includes('ADMIN')) return true;
+    return user.roles?.some(role => permissions[role]?.includes(sectionId));
+  };
   
   const container = {
     hidden: { opacity: 0 },
@@ -28,8 +57,27 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const AdminLink = ({ id, href, children, danger }) => {
+    const isPermitted = hasPermission(id);
+    
+    if (!isPermitted) {
+      return (
+        <div className="bg-gray-100/50 border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 opacity-60 grayscale cursor-not-allowed relative">
+          <div className="absolute top-2 right-2 text-gray-400"><Lock size={14} /></div>
+          {children}
+        </div>
+      );
+    }
+
+    return (
+      <Link href={href} className={`bg-white border ${danger ? 'border-red-100 hover:border-red-200 hover:bg-red-50' : 'border-gray-100 hover:border-indigo-200'} rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md transition-all active:scale-95`}>
+        {children}
+      </Link>
+    );
+  };
+
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-20 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-20">
       <Header title="پنل مدیریت" showBack={true} />
       
       <motion.div 
@@ -42,33 +90,33 @@ export default function AdminDashboard() {
         <motion.div variants={item} className="flex flex-col gap-3">
           <SectionTitle title="تنظیمات سیستم" icon={Settings} colorClass="bg-gray-200 text-gray-700" />
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/admin/settings" className="bg-white border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all active:scale-95">
+            <AdminLink id="settings" href="/admin/settings">
               <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center">
                 <Settings strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">تنظیمات مدیریت</span>
-            </Link>
+            </AdminLink>
             
-            <Link href="/admin/warehouses" className="bg-white border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:border-orange-200 hover:shadow-md transition-all active:scale-95">
+            <AdminLink id="warehouses" href="/admin/warehouses">
               <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center">
                 <Map strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">مدیریت انبارها</span>
-            </Link>
+            </AdminLink>
 
-            <Link href="/admin/locations" className="bg-white border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:border-purple-200 hover:shadow-md transition-all active:scale-95">
+            <AdminLink id="locations" href="/admin/locations">
               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
                 <Layers strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">مدیریت قفسه‌ها</span>
-            </Link>
+            </AdminLink>
             
-            <Link href="/admin/products" className="bg-white border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:border-teal-200 hover:shadow-md transition-all active:scale-95">
+            <AdminLink id="products" href="/admin/products">
               <div className="w-12 h-12 bg-teal-50 text-teal-500 rounded-2xl flex items-center justify-center">
                 <Box strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">لیست کالاها</span>
-            </Link>
+            </AdminLink>
           </div>
         </motion.div>
 
@@ -76,96 +124,66 @@ export default function AdminDashboard() {
         <motion.div variants={item} className="flex flex-col gap-3">
           <SectionTitle title="گزارشات" icon={BarChart3} colorClass="bg-blue-100 text-blue-600" />
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/admin/discrepancies" className="bg-white border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:border-red-200 hover:shadow-md transition-all active:scale-95">
+            <AdminLink id="discrepancies" href="/admin/discrepancies">
               <div className="w-12 h-12 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center">
                 <AlertTriangle strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">داشبورد مغایرت‌ها</span>
-            </Link>
+            </AdminLink>
             
-            <Link href="/admin/stats" className="bg-white border border-gray-100 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:border-blue-200 hover:shadow-md transition-all active:scale-95">
+            <AdminLink id="stats" href="/admin/stats">
               <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center">
                 <LayoutGrid strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">آمار طبقات</span>
-            </Link>
+            </AdminLink>
           </div>
         </motion.div>
 
         {/* Category 3: Management */}
         <motion.div variants={item} className="flex flex-col gap-3">
           <SectionTitle title="مدیریت" icon={UserCog} colorClass="bg-emerald-100 text-emerald-600" />
-          <div className="flex flex-col gap-3">
-            <Link href="/admin/users" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-indigo-200 hover:shadow-md transition-all active:scale-95">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-[12px] flex items-center justify-center">
-                  <Users strokeWidth={2} size={20} />
-                </div>
-                <span className="font-extrabold text-sm text-gray-800">کاربران</span>
+          <div className="grid grid-cols-2 gap-3">
+            <AdminLink id="users" href="/admin/users">
+              <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center">
+                <Users strokeWidth={2} size={24} />
               </div>
-              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </div>
-            </Link>
+              <span className="font-extrabold text-xs text-center text-gray-700">کاربران</span>
+            </AdminLink>
 
-            <Link href="/admin/tasks" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-blue-200 hover:shadow-md transition-all active:scale-95">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-[12px] flex items-center justify-center">
-                  <Activity strokeWidth={2} size={20} />
-                </div>
-                <span className="font-extrabold text-sm text-gray-800">مدیریت تسک‌ها</span>
+            <AdminLink id="tasks" href="/admin/tasks">
+              <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center">
+                <Activity strokeWidth={2} size={24} />
               </div>
-              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </div>
-            </Link>
+              <span className="font-extrabold text-xs text-center text-gray-700">مدیریت تسک‌ها</span>
+            </AdminLink>
 
-            <Link href="/admin/logs" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-gray-300 hover:shadow-md transition-all active:scale-95">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-100 text-gray-600 rounded-[12px] flex items-center justify-center">
-                  <Activity strokeWidth={2} size={20} />
-                </div>
-                <span className="font-extrabold text-sm text-gray-800">لاگ عملیات و فعالیت‌ها</span>
+            <AdminLink id="permissions" href="/admin/permissions">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center">
+                <Shield strokeWidth={2} size={24} />
               </div>
-              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+              <span className="font-extrabold text-xs text-center text-gray-700">سطح دسترسی</span>
+            </AdminLink>
+
+            <AdminLink id="logs" href="/admin/logs">
+              <div className="w-12 h-12 bg-gray-100 text-gray-600 rounded-2xl flex items-center justify-center">
+                <Activity strokeWidth={2} size={24} />
               </div>
-            </Link>
+              <span className="font-extrabold text-xs text-center text-gray-700">لاگ عملیات</span>
+            </AdminLink>
             
-            <Link href="/admin/permissions" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-emerald-200 hover:shadow-md transition-all active:scale-95">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-[12px] flex items-center justify-center">
-                  <Shield strokeWidth={2} size={20} />
-                </div>
-                <span className="font-extrabold text-sm text-gray-800">سطح دسترسی</span>
+            <AdminLink id="danger-zone" href="/admin/danger-zone" danger={true}>
+              <div className="w-12 h-12 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center">
+                <AlertCircle strokeWidth={2.5} size={24} />
               </div>
-              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </div>
-            </Link>
+              <span className="font-extrabold text-xs text-center text-red-600">منطقه خطر</span>
+            </AdminLink>
 
-            <Link href="/admin/danger-zone" className="bg-white border border-red-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:bg-red-50 hover:border-red-200 transition-all active:scale-95">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-red-100 text-red-500 rounded-[12px] flex items-center justify-center">
-                  <AlertCircle strokeWidth={2.5} size={20} />
-                </div>
-                <span className="font-extrabold text-sm text-red-600">منطقه خطر (Danger Zone)</span>
+            <Link href="/admin/about" className="bg-white border border-gray-100 hover:border-indigo-200 rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md transition-all active:scale-95">
+              <div className="w-12 h-12 bg-sky-50 text-sky-500 rounded-2xl flex items-center justify-center">
+                <Info strokeWidth={2} size={24} />
               </div>
-              <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-red-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </div>
-            </Link>
-
-            <Link href="/admin/about" className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center justify-between hover:border-indigo-200 hover:shadow-md transition-all active:scale-95">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-sky-50 text-sky-500 rounded-[12px] flex items-center justify-center">
-                  <Info strokeWidth={2} size={20} />
-                </div>
-                <span className="font-extrabold text-sm text-gray-800">درباره توسعه‌دهنده</span>
-              </div>
-              <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-              </div>
+              <span className="font-extrabold text-xs text-center text-gray-700">درباره توسعه‌دهنده</span>
             </Link>
           </div>
         </motion.div>

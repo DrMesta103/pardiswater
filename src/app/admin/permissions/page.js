@@ -47,10 +47,11 @@ export default function AdminPermissionsPage() {
       }
       setSettings(currentSettings);
 
-      // If there's no specific roles API, we define the known non-admin role:
+      // Define the explicit roles based on user request:
       setRoles([
-        { id: 'counter', label: 'انبارگردان / کاربر عادی' },
-        // Add more roles if needed
+        { id: 'SUPERVISOR', label: 'سرپرست انبارگردانی' },
+        { id: 'COUNTER', label: 'انبار گردان' },
+        { id: 'ACCOUNTANT', label: 'حسابدار' },
       ]);
 
     } catch (e) {
@@ -113,7 +114,7 @@ export default function AdminPermissionsPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="سطح دسترسی" showBack={true} />
 
       <div className="flex-1 p-4 md:p-6 w-full max-w-2xl mx-auto flex flex-col gap-6">

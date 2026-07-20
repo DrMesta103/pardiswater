@@ -74,7 +74,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24">
       <Header title="داشبورد" />
       
       <motion.div 

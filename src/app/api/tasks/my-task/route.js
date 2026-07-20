@@ -32,8 +32,8 @@ export async function GET(req) {
 
     let currentTasks = [...activeTasks];
 
-    // If we have less than 3 tasks, try to get from pool or generate new ones
-    while (currentTasks.length < 3) {
+    // If we have no tasks, try to get from pool or generate a new one
+    while (currentTasks.length < 1) {
       let newTaskAdded = false;
 
       // 1. Try to get from pool

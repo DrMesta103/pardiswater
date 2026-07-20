@@ -32,7 +32,7 @@ export default function DangerZonePage() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="منطقه خطر (Danger Zone)" showBack={true} />
 
       <div className="flex-1 p-4 md:p-6 max-w-xl mx-auto w-full mt-2">

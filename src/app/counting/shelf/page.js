@@ -253,7 +253,7 @@ function ShelfCountingContent() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="انبارگردانی قفسه" showBack={true} />
       
       {/* Top Fixed Info Bar */}

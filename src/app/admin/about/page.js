@@ -20,7 +20,7 @@ export default function AboutDeveloper() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24">
       <Header title="درباره توسعه‌دهنده" showBack={true} />
 
       <motion.div 
@@ -70,33 +70,26 @@ export default function AboutDeveloper() {
           </div>
 
           <div className="flex flex-col gap-3 relative z-10 mt-2">
-            <a href="https://hukastudio.com" target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 hover:bg-white/10 transition-colors">
+            <a href="https://hukaio.com" target="_blank" rel="noopener noreferrer" className="bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 hover:bg-white/10 transition-colors">
               <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
                 <Globe size={18} className="text-gray-300" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs text-gray-400 font-bold mb-0.5">وب‌سایت رسمی</span>
-                <span className="text-sm font-black text-white" dir="ltr">HukaStudio.com</span>
+                <span className="text-sm font-black text-white" dir="ltr">Hukaio.com</span>
               </div>
             </a>
             
-            <a href="tel:09120000000" className="bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 hover:bg-white/10 transition-colors">
+            <a href="tel:09981230125" className="bg-white/5 border border-white/10 p-4 rounded-[20px] flex items-center gap-4 hover:bg-white/10 transition-colors">
               <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
                 <Phone size={18} className="text-gray-300" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs text-gray-400 font-bold mb-0.5">پشتیبانی و توسعه</span>
-                <span className="text-sm font-black text-white" dir="ltr">+98 (0) ...</span>
+                <span className="text-sm font-black text-white" dir="ltr">0998 123 0125</span>
               </div>
             </a>
           </div>
-        </motion.div>
-
-        <motion.div variants={item} className="flex justify-center mt-4">
-          <Link href="/admin" className="text-gray-400 font-bold text-sm flex items-center gap-2 hover:text-gray-600 transition-colors">
-            <ArrowLeft size={16} />
-            بازگشت به پنل مدیریت
-          </Link>
         </motion.div>
       </motion.div>
     </div>

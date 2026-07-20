@@ -107,7 +107,7 @@ export default function WarehousesPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-gray-50 flex flex-col pb-24 relative">
       <Header title="مشاهده انبارها" showBack={true} />
 
       <div className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-lg mx-auto w-full mt-2">
@@ -155,9 +155,12 @@ export default function WarehousesPage() {
           </AnimatePresence>
           
           {allWarehouses.length === 0 && (
-            <div className="text-center py-10 bg-white rounded-[24px] border border-dashed border-gray-300">
-              <Server className="mx-auto text-gray-300 mb-2" size={32} />
-              <p className="text-sm font-bold text-gray-500">انباری از حسابفا دریافت نشد.</p>
+            <div className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-[32px] border border-dashed border-gray-200 shadow-sm mt-4">
+              <div className="w-20 h-20 bg-orange-50 rounded-[24px] flex items-center justify-center mb-4 -rotate-3 transition-transform hover:rotate-0">
+                <Server className="text-orange-400" size={36} strokeWidth={2} />
+              </div>
+              <h3 className="text-base font-black text-gray-800 mb-1">انباری یافت نشد!</h3>
+              <p className="text-sm font-medium text-gray-400 text-center">هنوز هیچ انباری از سیستم حسابفا دریافت نشده است.</p>
             </div>
           )}
         </div>
