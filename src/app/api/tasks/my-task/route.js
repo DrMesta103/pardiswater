@@ -62,65 +62,51 @@ export async function GET(req) {
         });
         const countableLocations = locations.filter(l => l.children.length === 0).sort((a,b) => a.code.localeCompare(b.code));
 
-        if (countableLocations.length > 0) {
-          const allActiveTasks = await prisma.task.findMany({
-            where: { status: { in: ['OPEN', 'IN_PROGRESS'] }, type: 'SYSTEM_LOCATION' }
+          where: { level: 2 },
+          orderBy: { createdAt: 'asc' }
+        });
+        
+        for (const loc of locations) {
+          const daysAgo = settings.uncounted_shelf_days || 10;
+          const dateThreshold = new Date();
+          dateThreshold.setDate(dateThreshold.getDate() - daysAgo);
+
+          const lastCount = await prisma.counting.findFirst({
+            where: { shelfCode: loc.code },
+            orderBy: { createdAt: 'desc' }
           });
-          const activeTargetIds = allActiveTasks.map(t => t.targetId);
 
-          const userLastTask = await prisma.task.findFirst({
-            where: { assignedTo: parseInt(userId, 10), type: 'SYSTEM_LOCATION', status: 'COMPLETED' },
-            orderBy: { updatedAt: 'desc' }
+          const activeTask = await prisma.task.findFirst({
+            where: { targetId: loc.code, status: { in: ['OPEN', 'IN_PROGRESS'] } }
           });
 
-          let locationToAssign = null;
-          for (let i = 0; i < countableLocations.length; i++) {
-            const loc = countableLocations[i];
-            
-            if (userLastTask && userLastTask.targetId === loc.code) continue;
-            // Also ensure it's not already in currentTasks
-            if (currentTasks.some(t => t.targetId === loc.code)) continue;
-            if (activeTargetIds.includes(loc.code)) continue;
-
-            const prevLoc = i > 0 ? countableLocations[i-1].code : null;
-            const nextLoc = i < countableLocations.length - 1 ? countableLocations[i+1].code : null;
-
-            if (prevLoc && activeTargetIds.includes(prevLoc)) continue;
-            if (nextLoc && activeTargetIds.includes(nextLoc)) continue;
-
-            locationToAssign = loc;
-            break;
-          }
-
-          if (!locationToAssign) {
-            locationToAssign = countableLocations.find(loc => !activeTargetIds.includes(loc.code) && !currentTasks.some(t => t.targetId === loc.code));
-          }
-
-          if (locationToAssign) {
+          if (!activeTask && (!lastCount || lastCount.createdAt < dateThreshold)) {
             const newTask = await prisma.task.create({
               data: {
                 type: 'SYSTEM_LOCATION',
-                targetId: locationToAssign.code,
-                targetName: locationToAssign.title || locationToAssign.code,
+                targetId: loc.code,
+                targetName: loc.title || loc.code,
                 assignedTo: parseInt(userId, 10),
-                createdBy: 1, // System or admin
+                createdBy: 1,
                 status: 'OPEN'
               }
             });
             currentTasks.push(newTask);
             newTaskAdded = true;
+            break;
           }
         }
       }
 
-      // If we couldn't add any new task (pool empty and no locations available), break
       if (!newTaskAdded) {
         break;
       }
     }
 
+    const allTasksToReturn = [...currentTasks, ...completedTasks];
+
     // Enhance tasks with full location path
-    const enhancedTasks = await Promise.all(currentTasks.map(async (task) => {
+    const enhancedTasks = await Promise.all(allTasksToReturn.map(async (task) => {
       if (task.type === 'SYSTEM_LOCATION') {
         const loc = await prisma.location.findUnique({
           where: { code: task.targetId },
@@ -130,15 +116,15 @@ export async function GET(req) {
         });
         
         if (loc) {
-          let pathParts = [loc.title || loc.code];
+          let pathParts = [`${loc.type || ''} ${loc.title || loc.code}`.trim()];
           let current = loc.parent;
           while (current) {
-            pathParts.unshift(current.title || current.code);
+            pathParts.unshift(`${current.type || ''} ${current.title || current.code}`.trim());
             current = current.parent;
           }
           if (loc.warehouse) pathParts.unshift(`انبار ${loc.warehouse}`);
           
-          return { ...task, fullPath: pathParts.join(' / '), warehouse: loc.warehouse };
+          return { ...task, fullPath: pathParts.join(' ، '), warehouse: loc.warehouse, targetName: loc.title || loc.code };
         }
       }
       return task;

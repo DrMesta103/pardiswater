@@ -11,8 +11,18 @@ export default function Dashboard() {
   const [settings, setSettings] = useState(null);
   const [user, setUser] = useState(null);
   const [systemTasks, setSystemTasks] = useState([]);
+  const [toastMsg, setToastMsg] = useState('');
   
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'shelf') {
+        setToastMsg('پایان قفسه با موفقیت ثبت شد!');
+        setTimeout(() => setToastMsg(''), 4000);
+        window.history.replaceState(null, '', '/dashboard');
+      }
+    }
+
     const userData = localStorage.getItem('user');
     let u = null;
     if (userData) {
@@ -83,48 +93,91 @@ export default function Dashboard() {
         animate="show"
         className="p-4 md:p-6 flex flex-col gap-6 max-w-lg mx-auto w-full mt-2"
       >
-        {/* System Assigned Tasks (Minimal) */}
-        {systemTasks.length > 0 && (
-          <motion.div variants={item} className="flex flex-col gap-3">
-            <div className="flex items-center justify-between px-2">
-              <div className="flex items-center gap-2 text-indigo-700">
-                <ClipboardList size={18} strokeWidth={2.5} />
-                <h3 className="text-sm font-black tracking-tight">تسک‌های محول شده سیستم</h3>
-              </div>
-              <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-[10px] font-bold">
-                {systemTasks.length} تسک فعال
-              </span>
-            </div>
-            
-            <div className="grid gap-3">
-              {systemTasks.map((task, idx) => (
-                <div key={task.id || idx} className="bg-white border-2 border-indigo-100 rounded-[20px] p-3 flex items-center justify-between shadow-sm hover:border-indigo-300 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-                      {task.type === 'SYSTEM_LOCATION' ? <Layers size={20} /> : <ScanLine size={20} />}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-gray-500 font-bold mb-0.5">
-                        {task.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
-                      </span>
-                      <span className="text-sm font-black text-gray-900 uppercase tracking-widest">{task.targetName}</span>
-                      {task.fullPath && (
-                        <span className="text-[9px] text-gray-500 font-bold mt-1 line-clamp-1">{task.fullPath}</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <Link 
-                    href={task.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${task.targetId}&warehouse=${task.warehouse}` : `/counting/item?id=${task.targetId}`}
-                    className="bg-indigo-600 text-white px-4 py-2.5 rounded-[12px] text-xs font-bold shadow-md hover:bg-indigo-700 transition-all shrink-0"
-                  >
-                    شروع
-                  </Link>
+        {/* Task Sections */}
+        {(() => {
+          const openTasks = systemTasks.filter(t => t.status === 'OPEN');
+          const inProgressTasks = systemTasks.filter(t => t.status === 'IN_PROGRESS');
+          const completedTasks = systemTasks.filter(t => t.status === 'COMPLETED');
+
+          const renderTaskItem = (task, isCompleted = false) => (
+            <div key={task.id} className={`bg-white border-2 rounded-[20px] p-3 flex items-center justify-between shadow-sm transition-all ${isCompleted ? 'border-gray-100 opacity-70' : 'border-indigo-100 hover:border-indigo-300'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isCompleted ? 'bg-gray-50 text-gray-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                  {task.type === 'SYSTEM_LOCATION' ? <Layers size={20} /> : <ScanLine size={20} />}
                 </div>
-              ))}
+                <div className="flex flex-col">
+                  <span className={`text-[10px] font-bold mb-0.5 ${isCompleted ? 'text-gray-400' : 'text-gray-400'}`}>
+                    {task.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
+                  </span>
+                  <span className={`text-sm font-black tracking-widest ${isCompleted ? 'text-gray-500' : 'text-[#292929]'}`}>
+                    آدرس: {task.fullPath || task.targetName}
+                  </span>
+                </div>
+              </div>
+              
+              {!isCompleted && (
+                <Link 
+                  href={task.type === 'SYSTEM_LOCATION' ? `/counting/shelf?code=${task.targetId}&warehouse=${task.warehouse}` : `/counting/item?id=${task.targetId}`}
+                  className="bg-indigo-600 text-white px-4 py-2.5 rounded-[12px] text-xs font-bold shadow-md hover:bg-indigo-700 transition-all shrink-0"
+                >
+                  {task.status === 'IN_PROGRESS' ? 'ادامه' : 'شروع'}
+                </Link>
+              )}
+              {isCompleted && (
+                <div className="bg-emerald-50 text-emerald-600 px-3 py-2 rounded-[12px] text-xs font-bold shrink-0 flex items-center gap-1">
+                  <Check size={14} />
+                  انجام شد
+                </div>
+              )}
             </div>
-          </motion.div>
-        )}
+          );
+
+          return (
+            <div className="flex flex-col gap-6">
+              {openTasks.length > 0 && (
+                <motion.div variants={item} className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2 text-indigo-700">
+                      <ClipboardList size={18} strokeWidth={2.5} />
+                      <h3 className="text-sm font-black tracking-tight">وظایف محول شده</h3>
+                    </div>
+                    <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-[10px] font-bold">
+                      {openTasks.length} مورد
+                    </span>
+                  </div>
+                  <div className="grid gap-3">{openTasks.map(t => renderTaskItem(t))}</div>
+                </motion.div>
+              )}
+
+              {inProgressTasks.length > 0 && (
+                <motion.div variants={item} className="flex flex-col gap-3 mt-2">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-sm font-black text-amber-600 flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                      </span>
+                      وظایف در حال انجام
+                    </h3>
+                  </div>
+                  <div className="grid gap-3">{inProgressTasks.map(t => renderTaskItem(t))}</div>
+                </motion.div>
+              )}
+
+              {completedTasks.length > 0 && (
+                <motion.div variants={item} className="flex flex-col gap-3 mt-2">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-sm font-black text-emerald-600 flex items-center gap-2">
+                      <Check size={16} strokeWidth={3} />
+                      وظایف انجام شده امروز
+                    </h3>
+                  </div>
+                  <div className="grid gap-3">{completedTasks.map(t => renderTaskItem(t, true))}</div>
+                </motion.div>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-2 gap-4">
           <motion.div variants={item}>
@@ -234,6 +287,20 @@ export default function Dashboard() {
         )}
 
       </motion.div>
+
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl shadow-xl backdrop-blur-3xl border text-xs font-bold whitespace-nowrap flex items-center justify-center gap-2 bg-emerald-500 text-white border-emerald-400"
+          >
+            <Check size={16} />
+            {toastMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

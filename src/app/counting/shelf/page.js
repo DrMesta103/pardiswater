@@ -91,9 +91,9 @@ function ShelfCountingContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shelfCode, warehouse, userId: user?.id })
       });
-      router.push('/dashboard');
+      router.push('/dashboard?success=shelf');
     } catch (error) {
-      router.push('/dashboard');
+      router.push('/dashboard?success=shelf');
     }
   };
 

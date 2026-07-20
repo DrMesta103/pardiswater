@@ -28,12 +28,8 @@ export async function POST(req) {
       where.product_id = Number(product_id);
     }
 
-    const updated = await prisma.counting.updateMany({
-      where,
-      data: {
-        status: 'CANCELLED',
-        cancelReason: reason
-      }
+    const deletedCounts = await prisma.counting.deleteMany({
+      where
     });
 
     // 2. Unlock the location
@@ -43,14 +39,14 @@ export async function POST(req) {
         data: { isLocked: false, lockedById: null, lockedAt: null }
       });
       
-      // Update Task to CANCELLED
+      // Update Task to OPEN and remove assignee so someone else can do it
       await prisma.task.updateMany({
         where: {
           targetId: shelfCode.toUpperCase(),
           assignedTo: Number(userId),
           status: { in: ['OPEN', 'IN_PROGRESS'] }
         },
-        data: { status: 'CANCELLED' }
+        data: { status: 'OPEN', assignedTo: null }
       });
     } else if (product_id) {
       // For Item Mode
@@ -60,7 +56,7 @@ export async function POST(req) {
           assignedTo: Number(userId),
           status: { in: ['OPEN', 'IN_PROGRESS'] }
         },
-        data: { status: 'CANCELLED' }
+        data: { status: 'OPEN', assignedTo: null }
       });
     }
 
