@@ -4,9 +4,44 @@ import axios from 'axios';
 const HESABFA_API_KEY = process.env.HESABFA_API_KEY || 'NCuDX3bksHlhXWGIqTvatvme3YTplxdF';
 const HESABFA_TOKEN = process.env.HESABFA_TOKEN || '4ddb2fc517f6f6fe6d4b9bdd08fa0df31a564a62e12c4353eb9533ae63447b57ca87c479beb7f02b276929c861dad779';
 
+let cachedItems = null;
+let lastCacheTime = 0;
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 export async function POST(req) {
   try {
-    const { code, type } = await req.json();
+    const body = await req.json();
+    const { code, type, query } = body;
+
+    if (type === 'search') {
+      if (!cachedItems || Date.now() - lastCacheTime > CACHE_TTL) {
+        let allItems = [];
+        let skip = 0;
+        const take = 1000;
+        while (true) {
+          const res = await axios.post('https://api.hesabfa.com/v1/item/getitems', {
+            apiKey: HESABFA_API_KEY,
+            loginToken: HESABFA_TOKEN,
+            queryInfo: { Take: take, Skip: skip },
+            type: 0
+          });
+          const list = res.data?.Result?.List || [];
+          if (list.length === 0) break;
+          allItems = allItems.concat(list);
+          skip += take;
+        }
+        cachedItems = allItems;
+        lastCacheTime = Date.now();
+      }
+
+      const q = (query || '').toLowerCase();
+      const filtered = cachedItems.filter(i => 
+        i.Name?.toLowerCase().includes(q) || 
+        String(i.Code).includes(q)
+      ).slice(0, 30); // Return top 30 matches
+
+      return NextResponse.json({ Result: filtered });
+    }
 
     if (type === 'name') {
       const res = await axios.post('https://api.hesabfa.com/v1/item/get', {

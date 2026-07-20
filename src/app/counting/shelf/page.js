@@ -34,6 +34,15 @@ function ShelfCountingContent() {
 
   const [history, setHistory] = useState([]);
   
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const [isUnknownModalOpen, setIsUnknownModalOpen] = useState(false);
+  const [unknownDesc, setUnknownDesc] = useState('');
+  const [unknownQty, setUnknownQty] = useState('');
+
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -239,6 +248,73 @@ function ShelfCountingContent() {
     }
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch('/api/hesabfa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'search', query: searchQuery })
+      });
+      const data = await res.json();
+      setSearchResults(data.Result || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectSearchResult = (item) => {
+    setProductCode(item.Code.toString());
+    setIsSearchModalOpen(false);
+    fetchItemData(item.Code.toString());
+  };
+
+  const submitUnknown = async () => {
+    if (!unknownDesc || !unknownQty) {
+      alert('لطفاً مشخصات ظاهری و تعداد را وارد کنید');
+      return;
+    }
+    setSubmitLoading(true);
+    const generatedCode = `UNKNOWN_${Date.now()}`;
+    const payload = {
+      product_id: generatedCode,
+      product_name: `ناشناس: ${unknownDesc}`,
+      warehouse: Number(warehouse),
+      shelfCode: shelfCode.toUpperCase(),
+      old_count: 0,
+      new_count: Number(unknownQty),
+      user_id: user?.id,
+      mode: 'SHELF'
+    };
+
+    try {
+      const res = await fetch('/api/counting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setHistory([{ code: generatedCode, name: `ناشناس: ${unknownDesc}`, count: unknownQty }, ...history]);
+        setIsUnknownModalOpen(false);
+        setUnknownDesc('');
+        setUnknownQty('');
+      } else {
+        alert('خطا در ثبت کالای ناشناس');
+      }
+    } catch (err) {
+      await saveCountOffline(payload);
+      setHistory([{ code: generatedCode, name: `ناشناس: ${unknownDesc}`, count: unknownQty, offline: true }, ...history]);
+      setIsUnknownModalOpen(false);
+      setUnknownDesc('');
+      setUnknownQty('');
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
   const isBlind = settings?.blind_counting && !hasRole(user?.roles, ['ADMIN', 'SUPERVISOR']);
 
   if (loading) {
@@ -310,22 +386,20 @@ function ShelfCountingContent() {
             )}
           </div>
           
-          <div className="flex items-center gap-2 mt-3 px-2 pb-2">
-            <input 
-              type="text" 
-              dir="ltr"
-              value={productCode}
-              onChange={(e) => { setProductCode(e.target.value); setErrorMsg(''); setProductName(''); }}
-              onKeyDown={handleProductCodeKeyDown}
-              placeholder="یا بارکد را اینجا تایپ کنید..."
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 text-center placeholder:font-normal"
-            />
+          <div className="grid grid-cols-2 gap-2 mt-3 px-2 pb-2">
             <button 
-              onClick={() => fetchItemData()}
-              disabled={itemLoading || !productCode}
-              className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-[14px] flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors border border-indigo-100 disabled:opacity-50"
+              onClick={() => setIsSearchModalOpen(true)}
+              className="bg-indigo-50 text-indigo-600 rounded-[14px] py-3 text-xs font-bold flex flex-col items-center justify-center gap-1 hover:bg-indigo-100 transition-colors border border-indigo-100"
             >
-              {itemLoading ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin"></div> : <Search size={18} strokeWidth={2.5} />}
+              <Search size={18} strokeWidth={2.5} />
+              ورود دستی / جستجو
+            </button>
+            <button 
+              onClick={() => setIsUnknownModalOpen(true)}
+              className="bg-amber-50 text-amber-600 rounded-[14px] py-3 text-xs font-bold flex flex-col items-center justify-center gap-1 hover:bg-amber-100 transition-colors border border-amber-100"
+            >
+              <AlertCircle size={18} strokeWidth={2.5} />
+              ثبت کالای ناشناخته
             </button>
           </div>
         </div>
@@ -428,6 +502,126 @@ function ShelfCountingContent() {
         )}
 
       </div>
+
+      {/* Search Modal */}
+      <AnimatePresence>
+        {isSearchModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setIsSearchModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-5 max-h-[85vh]"
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="font-black text-gray-800 text-lg">جستجوی کالا</h3>
+                <button onClick={() => setIsSearchModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  placeholder="نام یا کد کالا را تایپ کنید..."
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-sm font-bold focus:outline-none focus:border-indigo-500"
+                />
+                <button 
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                  className="w-12 h-12 bg-indigo-600 text-white rounded-[16px] flex items-center justify-center shrink-0"
+                >
+                  {isSearching ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Search size={20} />}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
+                {searchResults.map(item => (
+                  <div key={item.Code} onClick={() => selectSearchResult(item)} className="bg-gray-50 border border-gray-100 p-3 rounded-[16px] flex flex-col gap-1 cursor-pointer hover:bg-indigo-50 transition-colors">
+                    <span className="font-bold text-gray-800 text-sm">{item.Name}</span>
+                    <span className="text-[10px] text-gray-400 font-bold">کد: {item.Code} | موجودی کل: {item.Stock}</span>
+                  </div>
+                ))}
+                {searchResults.length === 0 && !isSearching && searchQuery && (
+                  <div className="text-center py-6 text-gray-400 text-sm font-bold">کالایی یافت نشد.</div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Unknown Item Modal */}
+      <AnimatePresence>
+        {isUnknownModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setIsUnknownModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-[32px] p-6 shadow-2xl flex flex-col gap-5"
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 text-amber-600">
+                  <AlertCircle size={24} strokeWidth={2.5} />
+                  <h3 className="font-black text-gray-800 text-lg">ثبت کالای ناشناس</h3>
+                </div>
+                <button onClick={() => setIsUnknownModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  اگر کالا بارکد ندارد و در جستجو هم یافت نشد، مشخصات ظاهری آن را اینجا بنویسید تا ادمین بعداً آن را بررسی کند.
+                </p>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-700">مشخصات ظاهری (رنگ، جنس، شکل و...)</label>
+                  <textarea 
+                    value={unknownDesc}
+                    onChange={(e) => setUnknownDesc(e.target.value)}
+                    placeholder="مثال: قطعه فلزی استوانه‌ای آبی رنگ"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-sm font-bold focus:outline-none focus:border-amber-500 min-h-[100px]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-700">تعداد شمارش شده</label>
+                  <input 
+                    type="number" 
+                    dir="ltr"
+                    value={unknownQty}
+                    onChange={(e) => setUnknownQty(e.target.value)}
+                    placeholder="0"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-base text-center font-black focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={submitUnknown}
+                disabled={submitLoading || !unknownDesc || !unknownQty}
+                className="w-full bg-amber-500 text-white py-4 rounded-[16px] text-sm font-black shadow-md hover:bg-amber-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {submitLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'ثبت و ارسال به ادمین'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

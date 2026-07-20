@@ -168,6 +168,12 @@ export default function ProductsPage() {
                             <span className="text-gray-400 font-normal">بارکد:</span> {p.Barcode}
                           </span>
                         )}
+                        <button 
+                          onClick={() => window.open(`/admin/products/print-label?code=${p.Code}&name=${encodeURIComponent(p.Name)}`, '_blank')}
+                          className="mr-3 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-[10px] text-[10px] font-black hover:bg-indigo-100 transition-colors"
+                        >
+                          تولید و چاپ لیبل (SKU)
+                        </button>
                       </div>
                     </div>
                   </div>
