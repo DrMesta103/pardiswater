@@ -21,16 +21,23 @@ export async function GET(req) {
       return NextResponse.json({ task: null });
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const activeTasks = await prisma.task.findMany({
       where: { 
         assignedTo: parseInt(userId, 10), 
-        status: { in: ['OPEN', 'IN_PROGRESS'] },
+        OR: [
+          { status: { in: ['OPEN', 'IN_PROGRESS'] } },
+          { status: 'COMPLETED', updatedAt: { gte: today } }
+        ],
         type: { in: ['SYSTEM_LOCATION', 'SYSTEM_ITEM'] }
       },
-      take: 3
+      take: 20
     });
 
-    let currentTasks = [...activeTasks];
+    let currentTasks = [...activeTasks.filter(t => t.status !== 'COMPLETED')];
+    let completedTasks = activeTasks.filter(t => t.status === 'COMPLETED');
 
     // If we have no tasks, try to get from pool or generate a new one
     while (currentTasks.length < 1) {
