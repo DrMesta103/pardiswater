@@ -15,6 +15,9 @@ export default function DiscrepancyDashboard() {
 
   const [taskModal, setTaskModal] = useState({ isOpen: false, productId: null, productName: '' });
   const [submittingTask, setSubmittingTask] = useState(false);
+  
+  const [users, setUsers] = useState([]);
+  const [selectedTaskUser, setSelectedTaskUser] = useState('');
 
   useEffect(() => {
     fetch('/api/settings')
@@ -25,6 +28,14 @@ export default function DiscrepancyDashboard() {
           if (data.warehouses.length > 0) {
             setWarehouse(data.warehouses[0].id);
           }
+        }
+      });
+      
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setUsers(data);
         }
       });
   }, []);
@@ -61,18 +72,21 @@ export default function DiscrepancyDashboard() {
   };
 
   const handleRecount = (productId, productName) => {
+    setSelectedTaskUser('');
     setTaskModal({ isOpen: true, productId, productName });
   };
 
-  const submitTask = async (doItMyself) => {
+  const submitTask = async () => {
     setSubmittingTask(true);
     try {
       const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      if (!user) {
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      if (!currentUser) {
         alert('لطفا ابتدا وارد حساب کاربری شوید.');
         return;
       }
+
+      const assignedToId = selectedTaskUser === 'auto' || !selectedTaskUser ? null : parseInt(selectedTaskUser, 10);
 
       const res = await fetch('/api/tasks/create', {
         method: 'POST',
@@ -81,13 +95,13 @@ export default function DiscrepancyDashboard() {
           type: 'SYSTEM_ITEM',
           targetId: taskModal.productId,
           targetName: taskModal.productName,
-          assignedTo: doItMyself ? user.id : null,
-          createdBy: user.id
+          assignedTo: assignedToId,
+          createdBy: currentUser.id
         })
       });
 
       if (res.ok) {
-        alert(doItMyself ? 'تسک با موفقیت به شما اختصاص داده شد.' : 'تسک با موفقیت به سیستم ارسال شد.');
+        alert(assignedToId ? 'تسک با موفقیت به کاربر انتخاب‌شده ارجاع داده شد.' : 'تسک با موفقیت به سیستم (تخصیص خودکار) ارسال شد.');
         setTaskModal({ isOpen: false, productId: null, productName: '' });
       } else {
         alert('خطا در ایجاد تسک');
@@ -350,19 +364,27 @@ export default function DiscrepancyDashboard() {
               </p>
               
               <div className="flex flex-col gap-3 mt-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-600 px-1">انتخاب کاربر</label>
+                  <select 
+                    value={selectedTaskUser}
+                    onChange={(e) => setSelectedTaskUser(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[14px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="auto">سیستم تصمیم بگیرد (تخصیص به اولین نفر آزاد)</option>
+                    <option disabled>──────────</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.username})</option>
+                    ))}
+                  </select>
+                </div>
+
                 <button 
-                  onClick={() => submitTask(true)}
+                  onClick={submitTask}
                   disabled={submittingTask}
-                  className="w-full bg-gray-900 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-md"
+                  className="w-full bg-gray-900 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-md mt-2"
                 >
-                  {submittingTask ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'خودم انجام می‌دهم'}
-                </button>
-                <button 
-                  onClick={() => submitTask(false)}
-                  disabled={submittingTask}
-                  className="w-full bg-indigo-50 text-indigo-700 py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors disabled:opacity-50"
-                >
-                  ارسال به سیستم (اولین نفر آزاد)
+                  {submittingTask ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'ایجاد و ارجاع تسک'}
                 </button>
                 <button 
                   onClick={() => setTaskModal({ isOpen: false, productId: null, productName: '' })}

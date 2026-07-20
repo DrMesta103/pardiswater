@@ -69,6 +69,8 @@ function ShelfCountingContent() {
     }
   };
 
+  const [otherShelves, setOtherShelves] = useState([]);
+
   const fetchItemData = async (codeToFetch) => {
     const code = codeToFetch || productCode;
     if (!code) {
@@ -81,6 +83,7 @@ function ShelfCountingContent() {
     setProductName('');
     setOldCount(null);
     setNewCount('');
+    setOtherShelves([]);
     setProductCode(code);
     
     try {
@@ -121,6 +124,16 @@ function ShelfCountingContent() {
          }
       }
       setOldCount(foundStock);
+
+      // Fetch other shelves where this product was counted
+      fetch(`/api/counting/product-locations?product_id=${code}&warehouse=${warehouse}&current_shelf=${shelfCode}`)
+        .then(res => res.json())
+        .then(locData => {
+          if (locData.shelves && locData.shelves.length > 0) {
+            setOtherShelves(locData.shelves);
+          }
+        })
+        .catch(() => {});
       
       if (inputRef.current) {
         setTimeout(() => inputRef.current.focus(), 100);
@@ -349,6 +362,15 @@ function ShelfCountingContent() {
                   </div>
                 )}
               </div>
+
+              {otherShelves.length > 0 && (
+                <div className="bg-orange-50 border border-orange-100 rounded-[12px] p-3 text-xs font-bold text-orange-600 flex items-start gap-2 relative z-10">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>
+                    توجه: این کالا قبلاً در قفسه‌های <strong className="bg-orange-200/50 px-1 rounded mx-1" dir="ltr">{otherShelves.join('، ')}</strong> نیز شمارش شده است.
+                  </span>
+                </div>
+              )}
 
               <div className="flex flex-col gap-3 relative z-10 mt-2">
                 <input 
