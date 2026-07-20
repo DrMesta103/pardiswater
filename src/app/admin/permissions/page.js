@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Check, XCircle, Save, Key, AlertCircle } from 'lucide-react';
+import { Shield, Check, XCircle, Save, Key, AlertCircle, ChevronDown } from 'lucide-react';
 
 export default function AdminPermissionsPage() {
   const [settings, setSettings] = useState(null);
@@ -10,6 +10,7 @@ export default function AdminPermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
+  const [openAccordion, setOpenAccordion] = useState(null);
 
   const adminSections = [
     { id: 'settings', label: 'تنظیمات مدیریت' },
@@ -125,38 +126,64 @@ export default function AdminPermissionsPage() {
           </div>
         </div>
 
-        {roles.map(role => (
-          <div key={role.id} className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm flex flex-col gap-4">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                <Key size={20} />
-              </div>
-              <h3 className="font-black text-gray-800 text-base">دسترسی‌های نقش: <span className="text-indigo-600">{role.label}</span></h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-              {adminSections.map(section => {
-                const isChecked = settings.admin_permissions?.[role.id]?.includes(section.id) || false;
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => handleTogglePermission(role.id, section.id)}
-                    className={`flex items-center justify-between p-3.5 rounded-[16px] border text-xs font-bold transition-all ${
-                      isChecked 
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700' 
-                      : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
-                    }`}
-                  >
-                    {section.label}
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isChecked ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-transparent'}`}>
-                      <Check size={12} strokeWidth={3} />
+        <div className="flex flex-col gap-4">
+          {roles.map(role => {
+            const isOpen = openAccordion === role.id;
+            return (
+              <div key={role.id} className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm flex flex-col transition-all">
+                <button 
+                  onClick={() => setOpenAccordion(isOpen ? null : role.id)}
+                  className="flex items-center justify-between p-5 w-full hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isOpen ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-50 text-indigo-600'}`}>
+                      <Key size={20} />
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                    <h3 className="font-black text-gray-800 text-base">دسترسی‌های نقش: <span className={isOpen ? 'text-indigo-600' : 'text-gray-600'}>{role.label}</span></h3>
+                  </div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 ${isOpen ? 'rotate-180 bg-indigo-100 text-indigo-600' : 'bg-gray-50 text-gray-400'}`}>
+                    <ChevronDown size={18} />
+                  </div>
+                </button>
+
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }} 
+                      animate={{ height: 'auto', opacity: 1 }} 
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-5 pt-0 border-t border-gray-50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                          {adminSections.map(section => {
+                            const isChecked = settings.admin_permissions?.[role.id]?.includes(section.id) || false;
+                            return (
+                              <button
+                                key={section.id}
+                                onClick={() => handleTogglePermission(role.id, section.id)}
+                                className={`flex items-center justify-between p-3.5 rounded-[16px] border text-xs font-bold transition-all ${
+                                  isChecked 
+                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm' 
+                                  : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
+                                }`}
+                              >
+                                {section.label}
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${isChecked ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-transparent'}`}>
+                                  <Check size={12} strokeWidth={3} />
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
 
         <motion.button
           whileTap={{ scale: 0.98 }}
