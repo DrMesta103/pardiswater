@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Layers, ChevronLeft, MapPin, XCircle, AlertCircle, Box, Home } from 'lucide-react';
+import { Plus, Trash2, Edit2, Layers, ChevronLeft, MapPin, XCircle, AlertCircle, Box, Home, QrCode, Camera, Check } from 'lucide-react';
+import dynamic from 'next/dynamic';
+const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
 
 export default function AdminLocations() {
   const [locations, setLocations] = useState([]);
@@ -25,6 +27,15 @@ export default function AdminLocations() {
     { name: 'ردیف', format: 'ANY' }
   ]);
   
+  // Bulk Scan States
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [scanCode, setScanCode] = useState('');
+  const [ignoreEndingX, setIgnoreEndingX] = useState(true);
+  const [scanPreview, setScanPreview] = useState(null);
+  const [scanError, setScanError] = useState('');
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [camError, setCamError] = useState('');
+
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
 
   const showToast = (message, isError = false) => {
@@ -171,6 +182,96 @@ export default function AdminLocations() {
     setIsModalOpen(false);
   };
 
+  const handleParseScan = (val) => {
+    let raw = val?.trim() || '';
+    if (!raw) {
+      setScanPreview(null);
+      setScanError('');
+      return;
+    }
+    
+    if (ignoreEndingX && raw.toLowerCase().endsWith('x')) {
+      raw = raw.slice(0, -1);
+    }
+    
+    const tokens = raw.match(/[a-zA-Z]+|[0-9]+/g) || [];
+    
+    if (tokens.length === 0) {
+      setScanError('هیچ الگوی مجازی در کد یافت نشد');
+      setScanPreview(null);
+      return;
+    }
+    
+    if (tokens.length > locationLevels.length) {
+      setScanError('تعداد سطوح کد اسکن شده از تنظیمات سیستم بیشتر است');
+      setScanPreview(null);
+      return;
+    }
+    
+    for (let i = 0; i < tokens.length; i++) {
+      const tokenVal = tokens[i];
+      const format = locationLevels[i]?.format || 'ANY';
+      const levelName = locationLevels[i]?.name || `سطح ${i+1}`;
+      
+      let isValid = true;
+      if (format === 'UPPERCASE' && !/^[A-Z]+$/.test(tokenVal)) isValid = false;
+      if (format === 'LOWERCASE' && !/^[a-z]+$/.test(tokenVal)) isValid = false;
+      if (format === 'NUMBER' && !/^[0-9]+$/.test(tokenVal)) isValid = false;
+      
+      if (!isValid) {
+        let expected = format === 'UPPERCASE' ? 'حروف بزرگ انگلیسی' : format === 'NUMBER' ? 'اعداد' : 'حروف کوچک انگلیسی';
+        setScanError(`سطح ${i+1} (${levelName}) باید شامل ${expected} باشد. اما «${tokenVal}» اسکن شد.`);
+        setScanPreview(null);
+        return;
+      }
+    }
+    
+    setScanError('');
+    setScanPreview(tokens.map((t, i) => ({
+      title: t,
+      type: locationLevels[i]?.name || `سطح ${i+1}`
+    })));
+  };
+
+  const handleCameraScan = (detectedCodes) => {
+    if (detectedCodes && detectedCodes.length > 0) {
+      const val = detectedCodes[0].rawValue;
+      setScanCode(val);
+      setCameraEnabled(false);
+      handleParseScan(val);
+    }
+  };
+
+  const handleBulkScanCreate = async () => {
+    if (!scanPreview || !scanPreview.length) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch('/api/locations/bulk-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          tokens: scanPreview.map(p => p.title),
+          warehouseId: selectedWarehouse 
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('ساختار قفسه با موفقیت ایجاد شد');
+        setIsScanModalOpen(false);
+        setScanPreview(null);
+        setScanCode('');
+        fetchLocations(currentParentId);
+      } else {
+        showToast(data.error || 'خطا در ایجاد', true);
+      }
+    } catch (e) {
+      showToast('خطای شبکه', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const currentDepth = breadcrumbs.length - 1;
   const currentLevel = locationLevels[currentDepth] || { name: `سطح ${currentDepth + 1}`, format: 'ANY' };
   const nextLevel = locationLevels[currentDepth + 1] || { name: `سطح ${currentDepth + 2}`, format: 'ANY' };
@@ -210,15 +311,34 @@ export default function AdminLocations() {
           })}
         </div>
 
-        {/* Action Button */}
-        <motion.button 
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsModalOpen(true)}
-          className="w-full bg-indigo-50 text-indigo-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors"
-        >
-          <Plus size={20} />
-          افزودن {nextLevelName} جدید
-        </motion.button>
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-2">
+          <motion.button 
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsModalOpen(true)}
+            className="flex-1 bg-indigo-50 text-indigo-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors"
+          >
+            <Plus size={20} />
+            افزودن {nextLevelName}
+          </motion.button>
+
+          {currentDepth === 0 && (
+            <motion.button 
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setScanCode('');
+                setScanPreview(null);
+                setScanError('');
+                setCameraEnabled(false);
+                setIsScanModalOpen(true);
+              }}
+              className="flex-1 bg-emerald-50 text-emerald-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
+            >
+              <QrCode size={20} />
+              ایجاد با اسکن
+            </motion.button>
+          )}
+        </div>
 
         {/* List Section */}
         <div className="flex flex-col gap-4 mt-2">
@@ -405,6 +525,137 @@ export default function AdminLocations() {
               >
                 {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (editingId ? <Edit2 size={18}/> : <Plus size={20}/>)}
                 {editingId ? 'ذخیره تغییرات' : 'ثبت اطلاعات'}
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Scan Modal */}
+      <AnimatePresence>
+        {isScanModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center"
+            onClick={() => setIsScanModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
+                  <QrCode size={20} className="text-emerald-500" />
+                  ایجاد خودکار با اسکن
+                </h3>
+                <button onClick={() => setIsScanModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
+                  <XCircle size={20} />
+                </button>
+              </div>
+              
+              {/* Warehouse selector (needed because we create from root) */}
+              <select
+                value={selectedWarehouse}
+                onChange={(e) => setSelectedWarehouse(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-[16px] px-4 py-3 text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+              >
+                <option value="" disabled>انبار را انتخاب کنید...</option>
+                {warehouses.map(wh => (
+                  <option key={wh.id} value={wh.id}>{wh.name} (کد: {wh.id})</option>
+                ))}
+              </select>
+              
+              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 p-3 rounded-[16px] cursor-pointer border border-gray-100">
+                <input 
+                  type="checkbox" 
+                  checked={ignoreEndingX}
+                  onChange={(e) => {
+                    setIgnoreEndingX(e.target.checked);
+                    // re-parse if there is already a code
+                    if (scanCode) {
+                      setTimeout(() => handleParseScan(scanCode), 0);
+                    }
+                  }}
+                  className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                />
+                نادیده گرفتن حرف X یا x در انتهای کد
+              </label>
+
+              {cameraEnabled ? (
+                <div className="w-full aspect-[4/3] rounded-[24px] overflow-hidden relative bg-black shadow-inner border border-gray-200">
+                  <div className="w-full h-full [&>div]:!object-cover [&>div>video]:!object-cover">
+                    <Scanner 
+                      onScan={handleCameraScan}
+                      onError={(err) => setCamError(err?.message || 'خطا در دوربین')}
+                      formats={['qr_code', 'code_128', 'ean_13']}
+                    />
+                  </div>
+                  {camError && (
+                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4">
+                      <span className="text-white text-xs font-bold text-center">{camError}</span>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setCameraEnabled(false)}
+                    className="absolute top-3 right-3 bg-white/20 backdrop-blur-md p-1.5 rounded-full text-white"
+                  >
+                    <XCircle size={20} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    dir="ltr"
+                    value={scanCode} 
+                    onChange={e => {
+                      setScanCode(e.target.value);
+                      handleParseScan(e.target.value);
+                    }} 
+                    placeholder="کد اسکن شده..." 
+                    className="flex-1 bg-white border-2 border-gray-200 rounded-[16px] px-4 py-3 text-base text-left font-black text-gray-800 focus:outline-none focus:border-emerald-500" 
+                  />
+                  <button 
+                    onClick={() => setCameraEnabled(true)}
+                    className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-[16px] flex items-center justify-center shrink-0 hover:bg-emerald-100 transition-colors border border-emerald-100"
+                  >
+                    <Camera size={20} />
+                  </button>
+                </div>
+              )}
+              
+              {scanError && (
+                <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-[12px] text-center">
+                  {scanError}
+                </div>
+              )}
+              
+              {scanPreview && !scanError && (
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-[16px] p-4 flex flex-col gap-3">
+                  <div className="text-xs font-black text-emerald-700 text-center mb-1">
+                    آدرس شناسایی شده:
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {scanPreview.map((level, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-[12px] shadow-sm">
+                        <span className="text-xs font-bold text-gray-500">{level.type}</span>
+                        <span className="text-sm font-black text-gray-800 tracking-widest">{level.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <motion.button 
+                whileTap={{ scale: 0.98 }}
+                onClick={handleBulkScanCreate}
+                disabled={loading || !scanPreview || !!scanError}
+                className="w-full bg-emerald-600 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-1 shadow-md shadow-emerald-600/20"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Check size={20}/>}
+                تایید و ساخت ساختار
               </motion.button>
             </motion.div>
           </motion.div>

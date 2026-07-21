@@ -15,11 +15,11 @@
  ✓ Compiled successfully
    Linting and checking validity of types ...
    Collecting page data ...
-   Generating static pages (0/54) ...
-   Generating static pages (13/54) 
-   Generating static pages (26/54) 
-   Generating static pages (40/54) 
- ✓ Generating static pages (54/54)
+   Generating static pages (0/55) ...
+   Generating static pages (13/55) 
+   Generating static pages (27/55) 
+   Generating static pages (41/55) 
+ ✓ Generating static pages (55/55)
    Finalizing page optimization ...
    Collecting build traces ...
 
@@ -30,7 +30,7 @@ Route (app)                                       Size     First Load JS
 ├ ○ /admin/about                                  8.66 kB         161 kB
 ├ ○ /admin/danger-zone                            5.01 kB         157 kB
 ├ ○ /admin/discrepancies                          7.74 kB         160 kB
-├ ○ /admin/locations                              7.51 kB         160 kB
+├ ○ /admin/locations                              7.2 kB          162 kB
 ├ ○ /admin/logs                                   3.42 kB         156 kB
 ├ ○ /admin/permissions                            5.92 kB         158 kB
 ├ ○ /admin/products                               6.05 kB         158 kB
@@ -42,43 +42,44 @@ Route (app)                                       Size     First Load JS
 ├ ○ /admin/users                                  7.04 kB         159 kB
 ├ ƒ /admin/users/[id]                             3.54 kB         156 kB
 ├ ○ /admin/warehouses                             5.06 kB         157 kB
-├ ƒ /api/admin/reset-data                         228 B           108 kB
-├ ƒ /api/admin/stats                              228 B           108 kB
-├ ƒ /api/admin/tasks                              228 B           108 kB
-├ ƒ /api/admin/users                              228 B           108 kB
-├ ƒ /api/admin/users/[id]                         228 B           108 kB
-├ ƒ /api/auth/login                               228 B           108 kB
-├ ƒ /api/auth/webauthn/login/generate-options     228 B           108 kB
-├ ƒ /api/auth/webauthn/login/verify               228 B           108 kB
-├ ƒ /api/auth/webauthn/register/generate-options  228 B           108 kB
-├ ƒ /api/auth/webauthn/register/verify            228 B           108 kB
-├ ƒ /api/counting                                 228 B           108 kB
-├ ƒ /api/counting/[id]                            228 B           108 kB
-├ ƒ /api/counting/cancel                          228 B           108 kB
-├ ƒ /api/counting/end-shelf                       228 B           108 kB
-├ ƒ /api/counting/history                         228 B           108 kB
-├ ƒ /api/counting/product-locations               228 B           108 kB
-├ ƒ /api/hesabfa                                  228 B           108 kB
-├ ƒ /api/locations                                228 B           108 kB
-├ ƒ /api/locations/[id]                           228 B           108 kB
-├ ƒ /api/locations/active                         228 B           108 kB
-├ ƒ /api/locations/lock                           228 B           108 kB
-├ ƒ /api/locations/validate                       228 B           108 kB
-├ ƒ /api/logs                                     228 B           108 kB
-├ ƒ /api/reports/discrepancies                    228 B           108 kB
-├ ƒ /api/reports/leaderboard                      228 B           108 kB
-├ ƒ /api/reports/uncounted                        228 B           108 kB
-├ ƒ /api/settings                                 228 B           108 kB
-├ ƒ /api/tasks/create                             228 B           108 kB
-├ ƒ /api/tasks/my-task                            228 B           108 kB
-├ ƒ /api/user/settings                            228 B           108 kB
-├ ƒ /api/users                                    228 B           108 kB
+├ ƒ /api/admin/reset-data                         231 B           108 kB
+├ ƒ /api/admin/stats                              231 B           108 kB
+├ ƒ /api/admin/tasks                              231 B           108 kB
+├ ƒ /api/admin/users                              231 B           108 kB
+├ ƒ /api/admin/users/[id]                         231 B           108 kB
+├ ƒ /api/auth/login                               231 B           108 kB
+├ ƒ /api/auth/webauthn/login/generate-options     231 B           108 kB
+├ ƒ /api/auth/webauthn/login/verify               231 B           108 kB
+├ ƒ /api/auth/webauthn/register/generate-options  231 B           108 kB
+├ ƒ /api/auth/webauthn/register/verify            231 B           108 kB
+├ ƒ /api/counting                                 231 B           108 kB
+├ ƒ /api/counting/[id]                            231 B           108 kB
+├ ƒ /api/counting/cancel                          231 B           108 kB
+├ ƒ /api/counting/end-shelf                       231 B           108 kB
+├ ƒ /api/counting/history                         231 B           108 kB
+├ ƒ /api/counting/product-locations               231 B           108 kB
+├ ƒ /api/hesabfa                                  231 B           108 kB
+├ ƒ /api/locations                                231 B           108 kB
+├ ƒ /api/locations/[id]                           231 B           108 kB
+├ ƒ /api/locations/active                         231 B           108 kB
+├ ƒ /api/locations/bulk-scan                      231 B           108 kB
+├ ƒ /api/locations/lock                           231 B           108 kB
+├ ƒ /api/locations/validate                       231 B           108 kB
+├ ƒ /api/logs                                     231 B           108 kB
+├ ƒ /api/reports/discrepancies                    231 B           108 kB
+├ ƒ /api/reports/leaderboard                      231 B           108 kB
+├ ƒ /api/reports/uncounted                        231 B           108 kB
+├ ƒ /api/settings                                 231 B           108 kB
+├ ƒ /api/tasks/create                             231 B           108 kB
+├ ƒ /api/tasks/my-task                            231 B           108 kB
+├ ƒ /api/user/settings                            231 B           108 kB
+├ ƒ /api/users                                    231 B           108 kB
 ├ ○ /counting                                     2.72 kB         155 kB
-├ ○ /counting/item                                5.18 kB         315 kB
+├ ○ /counting/item                                5.19 kB         316 kB
 ├ ○ /counting/shelf                               7.58 kB         318 kB
-├ ○ /dashboard                                    4.17 kB         159 kB
-├ ○ /history                                      3.67 kB         304 kB
-├ ○ /scan                                         7.17 kB         160 kB
+├ ○ /dashboard                                    4.18 kB         159 kB
+├ ○ /history                                      5.79 kB         304 kB
+├ ○ /scan                                         4.28 kB         160 kB
 └ ○ /settings                                     9.12 kB         162 kB
 + First Load JS shared by all                     108 kB
   ├ chunks/4bd1b696-d21b759d63e17c46.js           53 kB
