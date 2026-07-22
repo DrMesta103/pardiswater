@@ -5,7 +5,25 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const parentId = searchParams.get('parentId');
+    const code = searchParams.get('code');
     
+    if (code) {
+      const location = await prisma.location.findFirst({
+        where: { code: code.toUpperCase() },
+        include: { 
+          _count: { select: { countings: true, children: true } },
+          parent: {
+            include: {
+              parent: {
+                include: { parent: true }
+              }
+            }
+          }
+        }
+      });
+      return NextResponse.json(location);
+    }
+
     let where = {};
     const level = searchParams.get('level');
     

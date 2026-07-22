@@ -33,6 +33,8 @@ export default function AdminLocations() {
   const [ignoreEndingX, setIgnoreEndingX] = useState(true);
   const [scanPreview, setScanPreview] = useState(null);
   const [scanError, setScanError] = useState('');
+  const [existingLocation, setExistingLocation] = useState(null);
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [camError, setCamError] = useState('');
 
@@ -182,11 +184,12 @@ export default function AdminLocations() {
     setIsModalOpen(false);
   };
 
-  const handleParseScan = (val) => {
+  const handleParseScan = async (val) => {
     let raw = val?.trim() || '';
     if (!raw) {
       setScanPreview(null);
       setScanError('');
+      setExistingLocation(null);
       return;
     }
     
@@ -199,11 +202,34 @@ export default function AdminLocations() {
     if (tokens.length === 0) {
       setScanError('هیچ الگوی مجازی در کد یافت نشد');
       setScanPreview(null);
+      setExistingLocation(null);
       return;
     }
     
+    const fullCode = tokens.join('').toUpperCase();
+    setIsCheckingCode(true);
+    setScanError('');
+    setExistingLocation(null);
+    setScanPreview(null);
+
+    try {
+      const res = await fetch(`/api/locations?code=${fullCode}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.code) {
+          setExistingLocation(data);
+          setIsCheckingCode(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsCheckingCode(false);
+    }
+
     if (tokens.length > locationLevels.length) {
-      setScanError('تعداد سطوح کد اسکن شده از تنظیمات سیستم بیشتر است');
+      setScanError(`تعداد سطوح کد اسکن شده (${tokens.length}) از تنظیمات سیستم (${locationLevels.length}) بیشتر است`);
       setScanPreview(null);
       return;
     }
@@ -211,7 +237,7 @@ export default function AdminLocations() {
     for (let i = 0; i < tokens.length; i++) {
       const tokenVal = tokens[i];
       const format = locationLevels[i]?.format || 'ANY';
-      const levelName = locationLevels[i]?.name || `سطح ${i+1}`;
+      const levelName = locationLevels[i]?.name || (i === 0 ? 'طبقه' : i === 1 ? 'اتاق' : i === 2 ? 'ضلع' : i === 3 ? 'قفسه' : `سطح ${i+1}`);
       
       let isValid = true;
       if (format === 'UPPERCASE' && !/^[A-Z]+$/.test(tokenVal)) isValid = false;
@@ -226,10 +252,9 @@ export default function AdminLocations() {
       }
     }
     
-    setScanError('');
     setScanPreview(tokens.map((t, i) => ({
-      title: t,
-      type: locationLevels[i]?.name || `سطح ${i+1}`
+      title: t.toUpperCase(),
+      type: locationLevels[i]?.name || (i === 0 ? 'طبقه' : i === 1 ? 'اتاق' : i === 2 ? 'ضلع' : i === 3 ? 'قفسه' : `سطح ${i+1}`)
     })));
   };
 
@@ -257,10 +282,11 @@ export default function AdminLocations() {
       });
       const data = await res.json();
       if (res.ok) {
-        showToast('ساختار قفسه با موفقیت ایجاد شد');
+        showToast('مسیر ساختار قفسه با موفقیت ایجاد شد');
         setIsScanModalOpen(false);
         setScanPreview(null);
         setScanCode('');
+        setExistingLocation(null);
         fetchLocations(currentParentId);
       } else {
         showToast(data.error || 'خطا در ایجاد', true);
@@ -329,13 +355,14 @@ export default function AdminLocations() {
                 setScanCode('');
                 setScanPreview(null);
                 setScanError('');
+                setExistingLocation(null);
                 setCameraEnabled(false);
                 setIsScanModalOpen(true);
               }}
               className="flex-1 bg-emerald-50 text-emerald-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
             >
               <QrCode size={20} />
-              ایجاد با اسکن
+              اسکن قفسه
             </motion.button>
           )}
         </div>
@@ -531,7 +558,7 @@ export default function AdminLocations() {
         )}
       </AnimatePresence>
 
-      {/* Bulk Scan Modal */}
+      {/* Bulk / Shelf Scan Modal */}
       <AnimatePresence>
         {isScanModalOpen && (
           <motion.div 
@@ -547,15 +574,15 @@ export default function AdminLocations() {
             >
               <div className="flex justify-between items-center mb-1">
                 <h3 className="font-black text-gray-800 text-lg flex items-center gap-2">
-                  <QrCode size={20} className="text-emerald-500" />
-                  ایجاد خودکار با اسکن
+                  <QrCode size={22} className="text-indigo-600" />
+                  اسکن قفسه (ثبت و استعلام آدرس)
                 </h3>
                 <button onClick={() => setIsScanModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
                   <XCircle size={20} />
                 </button>
               </div>
               
-              {/* Warehouse selector (needed because we create from root) */}
+              {/* Warehouse selector */}
               <select
                 value={selectedWarehouse}
                 onChange={(e) => setSelectedWarehouse(e.target.value)}
@@ -567,20 +594,19 @@ export default function AdminLocations() {
                 ))}
               </select>
               
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-600 bg-gray-50 p-3 rounded-[16px] cursor-pointer border border-gray-100">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-600 bg-gray-50 p-3 rounded-[16px] cursor-pointer border border-gray-100">
                 <input 
                   type="checkbox" 
                   checked={ignoreEndingX}
                   onChange={(e) => {
                     setIgnoreEndingX(e.target.checked);
-                    // re-parse if there is already a code
                     if (scanCode) {
                       setTimeout(() => handleParseScan(scanCode), 0);
                     }
                   }}
-                  className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                 />
-                نادیده گرفتن حرف X یا x در انتهای کد
+                نادیده گرفتن حرف X یا x در انتهای کد (مانند A5F6x)
               </label>
 
               {cameraEnabled ? (
@@ -614,49 +640,107 @@ export default function AdminLocations() {
                       setScanCode(e.target.value);
                       handleParseScan(e.target.value);
                     }} 
-                    placeholder="کد اسکن شده..." 
-                    className="flex-1 bg-white border-2 border-gray-200 rounded-[16px] px-4 py-3 text-base text-left font-black text-gray-800 focus:outline-none focus:border-emerald-500" 
+                    placeholder="بارکد قفسه (مثال A5F6x)..." 
+                    className="flex-1 bg-white border-2 border-gray-200 rounded-[16px] px-4 py-3 text-base text-left font-black text-gray-800 focus:outline-none focus:border-indigo-500" 
                   />
                   <button 
                     onClick={() => setCameraEnabled(true)}
-                    className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-[16px] flex items-center justify-center shrink-0 hover:bg-emerald-100 transition-colors border border-emerald-100"
+                    className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-[16px] flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors border border-indigo-100"
                   >
                     <Camera size={20} />
                   </button>
                 </div>
               )}
+
+              {isCheckingCode && (
+                <div className="flex items-center justify-center gap-2 p-3 bg-indigo-50/70 text-indigo-600 rounded-[14px] text-xs font-bold animate-pulse">
+                  <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  در حال استعلام آدرس قفسه در سیستم...
+                </div>
+              )}
               
-              {scanError && (
-                <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-[12px] text-center">
+              {scanError && !isCheckingCode && (
+                <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-[12px] text-center border border-red-100">
                   {scanError}
                 </div>
               )}
-              
-              {scanPreview && !scanError && (
-                <div className="bg-emerald-50/50 border border-emerald-100 rounded-[16px] p-4 flex flex-col gap-3">
-                  <div className="text-xs font-black text-emerald-700 text-center mb-1">
-                    آدرس شناسایی شده:
+
+              {/* Case 1: Existing Location */}
+              {existingLocation && !isCheckingCode && (
+                <div className="bg-blue-50/80 border border-blue-200 rounded-[20px] p-4 flex flex-col gap-3 shadow-sm">
+                  <div className="flex items-center gap-2 text-blue-700 text-xs font-black">
+                    <Check className="w-4 h-4 bg-blue-600 text-white rounded-full p-0.5" />
+                    این آدرس قبلاً در سیستم ثبت شده است:
                   </div>
+                  
+                  <div className="flex flex-col gap-2 bg-white p-3 rounded-[14px] border border-blue-100 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500 font-bold">کد کامل قفسه:</span>
+                      <span className="font-black text-indigo-600 text-sm">{existingLocation.code}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500 font-bold">عنوان و نوع سطح:</span>
+                      <span className="font-bold text-gray-800">{existingLocation.type} {existingLocation.title}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500 font-bold">انبار:</span>
+                      <span className="font-bold text-gray-800">{existingLocation.warehouse || selectedWarehouse}</span>
+                    </div>
+                    {existingLocation.parent && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500 font-bold">مسیر کامل:</span>
+                        <span className="font-bold text-indigo-600" dir="ltr">
+                          {(function getPath(p) {
+                            let path = [existingLocation.title];
+                            let curr = p;
+                            while(curr) { path.unshift(curr.title); curr = curr.parent; }
+                            return path.join(' / ');
+                          })(existingLocation.parent)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-1 border-t border-gray-100">
+                      <span className="text-gray-500 font-bold">تعداد کالای ثبت‌شده:</span>
+                      <span className="font-black text-gray-800">{existingLocation._count?.countings || 0} مورد</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setIsScanModalOpen(false)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-[14px] text-xs font-black shadow-md hover:bg-blue-700 transition-colors"
+                  >
+                    متوجه شدم (بستن)
+                  </button>
+                </div>
+              )}
+              
+              {/* Case 2: New Location Breakdown */}
+              {scanPreview && !scanError && !existingLocation && !isCheckingCode && (
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-[20px] p-4 flex flex-col gap-3 shadow-sm">
+                  <div className="text-xs font-black text-emerald-800 text-center">
+                    ✨ آدرس جدید است؛ تفکیک سطوح به شکل زیر صورت گرفت:
+                  </div>
+                  
                   <div className="flex flex-col gap-2">
                     {scanPreview.map((level, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-[12px] shadow-sm">
-                        <span className="text-xs font-bold text-gray-500">{level.type}</span>
-                        <span className="text-sm font-black text-gray-800 tracking-widest">{level.title}</span>
+                      <div key={idx} className="flex items-center justify-between bg-white px-3.5 py-2.5 rounded-[14px] border border-emerald-100 shadow-xs">
+                        <span className="text-xs font-bold text-gray-500">سطح {idx + 1} ({level.type}):</span>
+                        <span className="text-sm font-black text-emerald-700 tracking-widest">{level.title}</span>
                       </div>
                     ))}
                   </div>
+
+                  <motion.button 
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleBulkScanCreate}
+                    disabled={loading}
+                    className="w-full bg-emerald-600 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-1 shadow-md shadow-emerald-600/20"
+                  >
+                    {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Check size={20}/>}
+                    تایید ادمین و ایجاد مسیر در مدیریت قفسه‌ها
+                  </motion.button>
                 </div>
               )}
-
-              <motion.button 
-                whileTap={{ scale: 0.98 }}
-                onClick={handleBulkScanCreate}
-                disabled={loading || !scanPreview || !!scanError}
-                className="w-full bg-emerald-600 text-white py-4 rounded-[16px] text-sm font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 mt-1 shadow-md shadow-emerald-600/20"
-              >
-                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Check size={20}/>}
-                تایید و ساخت ساختار
-              </motion.button>
             </motion.div>
           </motion.div>
         )}
