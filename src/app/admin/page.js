@@ -137,6 +137,13 @@ export default function AdminDashboard() {
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">آمار طبقات</span>
             </AdminLink>
+            
+            <AdminLink id="unknowns" href="/admin/unknowns">
+              <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center">
+                <AlertCircle strokeWidth={2} size={24} />
+              </div>
+              <span className="font-extrabold text-xs text-center text-gray-700">کالاهای ناشناس</span>
+            </AdminLink>
           </div>
         </motion.div>
 

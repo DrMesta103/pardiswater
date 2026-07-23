@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
-import { ScanLine, Search, Check, Box, Layers, AlertCircle, X, History, Trash2, Edit, Plus, Minus } from 'lucide-react';
+import { ScanLine, Search, Check, Box, Layers, AlertCircle, X, History, Trash2, Edit, Plus, Minus, MoreVertical } from 'lucide-react';
 import { hasRole } from '@/lib/auth';
 import { saveCountOffline, syncOfflineCounts } from '@/lib/offlineSync';
 import dynamic from 'next/dynamic';
@@ -49,6 +49,9 @@ function ShelfCountingContent() {
   
   const [isCountModalOpen, setIsCountModalOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
+  
+  const [activeActionId, setActiveActionId] = useState(null);
+  const [tooltipId, setTooltipId] = useState(null);
 
   const inputRef = useRef(null);
 
@@ -458,7 +461,14 @@ function ShelfCountingContent() {
             ) : cameraEnabled ? (
               <>
                 <div className="w-full h-full opacity-80 [&>div]:!object-cover [&>div>video]:!object-cover">
-                  <ZoomableScanner onScan={handleScan} onError={handleError} />
+                  {(!isCountModalOpen && !isSearchModalOpen && !isUnknownModalOpen && !isCancelModalOpen) ? (
+                    <ZoomableScanner onScan={handleScan} onError={handleError} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-900 flex-col gap-2">
+                      <ScanLine size={32} className="text-gray-700" />
+                      <span className="text-xs font-bold text-gray-500">دوربین موقتاً متوقف شد</span>
+                    </div>
+                  )}
                 </div>
                 <div className="absolute inset-0 pointer-events-none border-[3px] border-indigo-500/30 m-6 rounded-[24px]">
                   <div className="absolute top-1/2 left-0 w-full h-[2px] bg-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
@@ -527,27 +537,63 @@ function ShelfCountingContent() {
               تاریخچه شمارش در این قفسه
             </h3>
             <div className="flex flex-col gap-2">
-              {history.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-[16px] border border-gray-100 relative overflow-hidden shadow-sm">
-                  {item.offline && <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>}
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col max-w-[150px] xs:max-w-[180px]">
-                      <p className="text-xs font-bold text-gray-800 line-clamp-1">{item.name}</p>
+              {history.map((item, idx) => {
+                const uniqueId = item.id || item.code;
+                return (
+                  <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-[16px] border border-gray-100 relative overflow-hidden shadow-sm">
+                    {item.offline && <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>}
+                    
+                    <div 
+                      className="flex-1 flex flex-col overflow-hidden relative cursor-pointer"
+                      onClick={() => setTooltipId(tooltipId === uniqueId ? null : uniqueId)}
+                    >
+                      <p className={`text-xs font-bold text-gray-800 ${tooltipId === uniqueId ? '' : 'line-clamp-1'}`}>{item.name}</p>
                       <p className="text-[9px] font-bold text-gray-400 mt-0.5">کد: {item.code}</p>
+                      {tooltipId === uniqueId && (
+                        <div className="absolute inset-0 bg-gray-900/95 text-white text-[10px] p-2 rounded-lg z-10 overflow-y-auto font-medium">
+                          {item.name}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0 pr-2 pl-1 relative">
+                      <span className="text-sm font-black text-gray-800 min-w-[24px] text-left">{item.count}</span>
+                      
+                      <button 
+                        onClick={() => setActiveActionId(activeActionId === uniqueId ? null : uniqueId)}
+                        className="w-8 h-8 flex items-center justify-center text-gray-400 bg-gray-50 rounded-[10px] hover:bg-gray-100 transition-colors"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+
+                      <AnimatePresence>
+                        {activeActionId === uniqueId && (
+                          <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, x: 10 }} 
+                            animate={{ opacity: 1, scale: 1, x: 0 }} 
+                            exit={{ opacity: 0, scale: 0.9, x: 10 }}
+                            className="absolute left-10 top-0 bottom-0 bg-white shadow-[0_2px_15px_-3px_rgba(0,0,0,0.1)] rounded-[12px] flex items-center gap-1.5 px-2 border border-gray-100 z-20"
+                          >
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleEditHistory(item); setActiveActionId(null); }} 
+                              className="w-7 h-7 flex items-center justify-center text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <div className="w-[1px] h-4 bg-gray-200"></div>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteHistory(item); setActiveActionId(null); }} 
+                              className="w-7 h-7 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-sm font-black text-gray-800 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 min-w-[36px] text-center">{item.count}</span>
-                    <button onClick={() => handleEditHistory(item)} className="w-8 h-8 flex items-center justify-center text-blue-500 bg-blue-50 rounded-[10px]">
-                      <Edit size={14} />
-                    </button>
-                    <button onClick={() => handleDeleteHistory(item)} className="w-8 h-8 flex items-center justify-center text-red-500 bg-red-50 rounded-[10px]">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
