@@ -26,6 +26,11 @@ export async function GET(req) {
 
     let where = {};
     const level = searchParams.get('level');
+    const warehouseId = searchParams.get('warehouseId');
+    
+    if (warehouseId) {
+      where.warehouse = parseInt(warehouseId, 10);
+    }
     
     if (level) {
       where.level = parseInt(level, 10);

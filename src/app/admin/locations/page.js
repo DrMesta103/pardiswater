@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Edit2, Layers, ChevronLeft, MapPin, XCircle, AlertCircle, Box, Home, QrCode, Camera, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Layers, ChevronLeft, MapPin, XCircle, AlertCircle, Box, Home, QrCode, Camera, Check, Printer } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
 
 export default function AdminLocations() {
@@ -349,21 +350,31 @@ export default function AdminLocations() {
           </motion.button>
 
           {currentDepth === 0 && (
-            <motion.button 
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setScanCode('');
-                setScanPreview(null);
-                setScanError('');
-                setExistingLocation(null);
-                setCameraEnabled(false);
-                setIsScanModalOpen(true);
-              }}
-              className="flex-1 bg-emerald-50 text-emerald-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
-            >
-              <QrCode size={20} />
-              اسکن قفسه
-            </motion.button>
+            <div className="flex flex-1 gap-2">
+              <motion.button 
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setScanCode('');
+                  setScanPreview(null);
+                  setScanError('');
+                  setExistingLocation(null);
+                  setCameraEnabled(false);
+                  setIsScanModalOpen(true);
+                }}
+                className="flex-1 bg-emerald-50 text-emerald-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
+              >
+                <QrCode size={20} />
+                اسکن قفسه
+              </motion.button>
+              
+              <Link
+                href="/admin/locations/print"
+                className="flex-1 bg-blue-50 text-blue-600 py-3.5 rounded-[16px] text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-100 transition-colors"
+              >
+                <Printer size={20} />
+                چاپ بارکدها
+              </Link>
+            </div>
           )}
         </div>
 
