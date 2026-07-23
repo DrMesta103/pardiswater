@@ -15,6 +15,7 @@ model User {
   name      String?
   mobile    String?
   roles     Json?      // e.g. ["COUNTER", "ACCOUNTANT", "SUPERVISOR", "ADMIN"]
+  isActive  Boolean    @default(true)
   orgId     Int?       
   avatarUrl String?    @db.LongText
   challenge String?    @db.Text

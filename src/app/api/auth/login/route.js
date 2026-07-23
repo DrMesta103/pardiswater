@@ -18,6 +18,10 @@ export async function POST(req) {
       return Response.json({ error: 'کاربر یافت نشد.' }, { status: 404 });
     }
 
+    if (user.isActive === false) {
+      return Response.json({ error: 'حساب کاربری شما غیرفعال شده است. لطفاً با مدیریت تماس بگیرید.' }, { status: 403 });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
