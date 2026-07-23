@@ -8,7 +8,7 @@ import { saveCountOffline, syncOfflineCounts } from '@/lib/offlineSync';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
+import ZoomableScanner from '@/components/ZoomableScanner';
 
 function ItemCountingContent() {
   const router = useRouter();
@@ -247,7 +247,7 @@ function ItemCountingContent() {
             ) : cameraEnabled ? (
               <>
                 <div className="w-full h-full opacity-80 [&>div]:!object-cover [&>div>video]:!object-cover">
-                  <Scanner onScan={handleScan} onError={handleError} />
+                  <ZoomableScanner onScan={handleScan} onError={handleError} />
                 </div>
                 {/* Scanner Overlay UI */}
                 <div className="absolute inset-0 pointer-events-none border-[3px] border-teal-500/30 m-4 rounded-[16px]">

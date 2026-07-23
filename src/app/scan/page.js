@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScanLine, Search, Box, X, ChevronDown, CheckCircle2, LayoutGrid, Layers } from 'lucide-react';
-const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
+import ZoomableScanner from '@/components/ZoomableScanner';
 
 export default function ScanPage() {
   const [mode, setMode] = useState('ITEM'); // 'ITEM' | 'SHELF'
@@ -132,7 +132,7 @@ export default function ScanPage() {
                   <div className="text-red-400 text-xs p-6 text-center h-full flex items-center justify-center font-medium bg-gray-900">{camError}</div>
                 ) : (
                   <div className="w-full h-full [&>div]:!object-cover [&>div>video]:!object-cover">
-                    <Scanner 
+                    <ZoomableScanner 
                       onScan={handleScan}
                       onError={handleError}
                       formats={['qr_code', 'code_128', 'ean_13']}

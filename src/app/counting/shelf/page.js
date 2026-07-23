@@ -8,7 +8,7 @@ import { saveCountOffline, syncOfflineCounts } from '@/lib/offlineSync';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
+import ZoomableScanner from '@/components/ZoomableScanner';
 
 function ShelfCountingContent() {
   const router = useRouter();
@@ -458,7 +458,7 @@ function ShelfCountingContent() {
             ) : cameraEnabled ? (
               <>
                 <div className="w-full h-full opacity-80 [&>div]:!object-cover [&>div>video]:!object-cover">
-                  <Scanner onScan={handleScan} onError={handleError} />
+                  <ZoomableScanner onScan={handleScan} onError={handleError} />
                 </div>
                 <div className="absolute inset-0 pointer-events-none border-[3px] border-indigo-500/30 m-6 rounded-[24px]">
                   <div className="absolute top-1/2 left-0 w-full h-[2px] bg-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>

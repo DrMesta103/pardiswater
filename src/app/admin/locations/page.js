@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Edit2, Layers, ChevronLeft, MapPin, XCircle, AlertCircle, Box, Home, QrCode, Camera, Check, Printer } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(mod => mod.Scanner), { ssr: false });
+import ZoomableScanner from '@/components/ZoomableScanner';
 
 export default function AdminLocations() {
   const [locations, setLocations] = useState([]);
@@ -623,7 +623,7 @@ export default function AdminLocations() {
               {cameraEnabled ? (
                 <div className="w-full aspect-[4/3] rounded-[24px] overflow-hidden relative bg-black shadow-inner border border-gray-200">
                   <div className="w-full h-full [&>div]:!object-cover [&>div>video]:!object-cover">
-                    <Scanner 
+                    <ZoomableScanner 
                       onScan={handleCameraScan}
                       onError={(err) => setCamError(err?.message || 'خطا در دوربین')}
                       formats={['qr_code', 'code_128', 'ean_13']}
