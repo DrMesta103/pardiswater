@@ -113,9 +113,35 @@ export async function POST(req) {
     // Sort ascending: Oldest count timestamp (or 0) comes FIRST
     sortedLeafLocations.sort((a, b) => a.priorityTime - b.priorityTime);
 
-    // 4. Generate SYSTEM_LOCATION tasks in priority order
-    let createdTasksCount = 0;
+    // 4. Spatial Interleaving (Round-Robin by parentId to prevent room-clustering)
+    // We group tasks by their immediate parent (e.g. Room/Row) and interleave them.
+    // This ensures if 5 users ask for tasks, they get tasks in 5 DIFFERENT rooms/rows!
+    const groupedByParent = {};
     for (const item of sortedLeafLocations) {
+      const pId = item.loc.parentId || 'root';
+      if (!groupedByParent[pId]) groupedByParent[pId] = [];
+      groupedByParent[pId].push(item);
+    }
+
+    const spatiallyScatteredLocations = [];
+    const groupKeys = Object.keys(groupedByParent);
+    // Shuffle groupKeys slightly to prevent deterministic linear room scanning
+    groupKeys.sort(() => Math.random() - 0.5); 
+    
+    let hasMore = true;
+    while (hasMore) {
+      hasMore = false;
+      for (const key of groupKeys) {
+        if (groupedByParent[key].length > 0) {
+          spatiallyScatteredLocations.push(groupedByParent[key].shift());
+          hasMore = true;
+        }
+      }
+    }
+
+    // 5. Generate SYSTEM_LOCATION tasks in scattered priority order
+    let createdTasksCount = 0;
+    for (const item of spatiallyScatteredLocations) {
       const loc = item.loc;
       await prisma.task.create({
         data: {
