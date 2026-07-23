@@ -241,22 +241,37 @@ export default function PrintLocations() {
 
       {/* Print View (Only visible during printing) */}
       <div className="hidden print:block bg-white text-black p-4">
-        <div className="grid grid-cols-4 gap-8 gap-y-12">
+        <div className="flex flex-wrap items-start content-start" style={{ gap: '24px' }}>
           {selectedLocations.map((loc, index) => {
-            const paddedCode = getPaddedCode(loc.code);
+            const rawCode = loc.code;
+            const maxLen = locationLevels.length;
+            const tokens = rawCode.match(/[a-zA-Z]+|[0-9]+/g) || [];
+            const missing = maxLen - tokens.length;
+            const hasX = missing > 0;
+            const displayX = hasX ? 'x'.repeat(missing) : '';
+
             return (
-              <div key={loc.id} className="flex flex-col items-center justify-center text-center p-2 border border-dashed border-gray-300">
-                <QRCodeSVG 
-                  value={loc.code} 
-                  size={100}
-                  level="M"
-                  includeMargin={true}
-                />
-                <div className="font-black text-xl tracking-[0.2em] mt-1 uppercase" dir="ltr">
-                  {paddedCode}
+              <div 
+                key={loc.id} 
+                className="flex flex-row items-center justify-start p-2 w-[calc(50%-12px)]" 
+                style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+              >
+                <div className="shrink-0 border-[3px] border-black p-1 mr-4">
+                  <QRCodeSVG 
+                    value={loc.code} 
+                    size={80}
+                    level="M"
+                    includeMargin={false}
+                  />
                 </div>
-                <div className="text-[9px] font-bold text-gray-600 mt-2">
-                  گروه نوآوری هوکا
+                <div className="flex flex-col pb-2">
+                  <div className="font-black text-[32px] tracking-[0.1em] flex items-end" dir="ltr">
+                    <span className="text-black uppercase leading-none">{rawCode}</span>
+                    {hasX && <span className="text-xl text-gray-400 lowercase ml-0.5 mb-0.5 leading-none">{displayX}</span>}
+                  </div>
+                  <div className="text-[10px] font-bold text-gray-600 mt-2">
+                    گروه نوآوری هوکا
+                  </div>
                 </div>
               </div>
             );

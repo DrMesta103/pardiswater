@@ -89,14 +89,26 @@ function ShelfCountingContent() {
 
   const handleFinishShelf = async () => {
     try {
-      await fetch('/api/counting/end-shelf', {
+      const res = await fetch('/api/counting/end-shelf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shelfCode, warehouse, userId: user?.id })
       });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        if (data.punished) {
+          alert('🚫 اخطار سیستم:\n\n' + data.error);
+          router.push('/dashboard');
+          return;
+        }
+        alert(data.error || 'خطا در پایان قفسه');
+        return;
+      }
+      
       router.push('/dashboard?success=shelf');
     } catch (error) {
-      router.push('/dashboard?success=shelf');
+      alert('خطای شبکه در ارتباط با سرور');
     }
   };
 
