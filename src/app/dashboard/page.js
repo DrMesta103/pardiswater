@@ -109,8 +109,11 @@ export default function Dashboard() {
                   <span className={`text-[10px] font-bold mb-0.5 ${isCompleted ? 'text-gray-400' : 'text-gray-500'}`}>
                     {task.type === 'SYSTEM_LOCATION' ? 'شمارش قفسه' : 'شمارش کالا'}
                   </span>
-                  <span className={`text-[11px] font-bold leading-relaxed ${isCompleted ? 'text-gray-500' : 'text-[#292929]'}`}>
-                    آدرس: {task.fullPath || task.targetName}
+                  <span className={`text-[11px] font-bold leading-relaxed mt-0.5 flex flex-col gap-1 ${isCompleted ? 'text-gray-500' : 'text-gray-800'}`}>
+                    <span className="flex items-center gap-2">
+                      <span className="text-indigo-600 font-black tracking-widest uppercase" dir="ltr">{task.targetId}</span>
+                    </span>
+                    <span className="text-[10px] opacity-80 leading-snug">{task.fullPath || task.targetName}</span>
                   </span>
                 </div>
               </div>

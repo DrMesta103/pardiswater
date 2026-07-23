@@ -101,7 +101,21 @@ export async function GET(req) {
         const loc = await prisma.location.findUnique({
           where: { code: task.targetId },
           include: { 
-            parent: { include: { parent: { include: { parent: true } } } }
+            parent: { 
+              include: { 
+                parent: { 
+                  include: { 
+                    parent: { 
+                      include: { 
+                        parent: { 
+                          include: { parent: true } 
+                        } 
+                      } 
+                    } 
+                  } 
+                } 
+              } 
+            }
           }
         });
         
