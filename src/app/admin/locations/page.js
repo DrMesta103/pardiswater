@@ -152,7 +152,7 @@ export default function AdminLocations() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('آیا از حذف این سطح اطمینان دارید؟')) return;
+    if (!confirm('اخطار مهم: حذف این سطح باعث حذف شدن تمامی زیرمجموعه‌ها و تسک‌های مربوط به آن‌ها می‌شود!\nآیا از حذف اطمینان دارید؟')) return;
     try {
       const res = await fetch(`/api/locations/${id}`, { method: 'DELETE' });
       const data = await res.json();

@@ -6,21 +6,52 @@ export async function DELETE(req, { params }) {
     const { id: idParam } = await params;
     const id = parseInt(idParam, 10);
     const location = await prisma.location.findUnique({
-      where: { id },
-      include: { _count: { select: { countings: true, children: true } } }
+      where: { id }
     });
 
     if (!location) return NextResponse.json({ error: 'قفسه/سطح یافت نشد' }, { status: 404 });
-    if (location._count.countings > 0) {
-      return NextResponse.json({ error: 'این سطح دارای کالای شمرده شده است و قابل حذف نیست.' }, { status: 400 });
-    }
-    if (location._count.children > 0) {
-      return NextResponse.json({ error: 'این سطح دارای زیرمجموعه است و قابل حذف نیست.' }, { status: 400 });
+
+    // Check if there are ANY countings for this code or its children (using startsWith)
+    const countingsCount = await prisma.counting.count({
+      where: {
+        shelfCode: {
+          startsWith: location.code
+        }
+      }
+    });
+
+    if (countingsCount > 0) {
+      return NextResponse.json({ error: 'این سطح یا زیرمجموعه‌های آن دارای کالای شمرده شده است و قابل حذف نیست.' }, { status: 400 });
     }
 
+    // Since no countings exist, we can safely delete tasks and locations
+    // 1. Delete all tasks related to this location or its children
+    await prisma.task.deleteMany({
+      where: {
+        targetId: {
+          startsWith: location.code
+        }
+      }
+    });
+
+    // 2. Delete all child locations
+    await prisma.location.deleteMany({
+      where: {
+        code: {
+          startsWith: location.code
+        },
+        id: {
+          not: id // Exclude parent to delete it last, or just let it be deleted here
+        }
+      }
+    });
+
+    // 3. Delete the parent location itself
     await prisma.location.delete({ where: { id } });
+
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Delete Location Error:', error);
     return NextResponse.json({ error: 'خطا در حذف سطح' }, { status: 500 });
   }
 }

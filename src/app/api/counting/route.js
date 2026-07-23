@@ -12,10 +12,22 @@ export async function POST(req) {
         create: { code: data.shelfCode.toUpperCase(), title: data.shelfCode.toUpperCase(), type: 'قفسه ناشناس' }
       });
     }
+    // Find if there is an active period for this warehouse
+    const activePeriods = await prisma.countingPeriod.findMany({
+      where: { status: 'ACTIVE' }
+    });
     
-      const count = await prisma.counting.create({
-        data: {
-          product_id: String(data.product_id),
+    let activePeriodId = null;
+    for (const p of activePeriods) {
+      if (Array.isArray(p.warehouses) && p.warehouses.includes(String(data.warehouse))) {
+        activePeriodId = p.id;
+        break;
+      }
+    }
+
+    const count = await prisma.counting.create({
+      data: {
+        product_id: String(data.product_id),
         product_name: data.product_name,
         warehouse: Number(data.warehouse),
         shelfCode: data.shelfCode ? data.shelfCode.toUpperCase() : null,
@@ -23,7 +35,8 @@ export async function POST(req) {
         new_count: Number(data.new_count),
         user_id: Number(data.user_id),
         mode: data.mode || 'SHELF',
-        is_offline: data.is_offline || false
+        is_offline: data.is_offline || false,
+        periodId: activePeriodId
       }
     });
 
