@@ -14,6 +14,7 @@ export default function PrintLocations() {
   
   const [locations, setLocations] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -75,12 +76,23 @@ export default function PrintLocations() {
     setSelectedIds(next);
   };
 
+  const visibleLocations = locations.filter(loc => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toUpperCase();
+    return loc.code.toUpperCase().startsWith(q) || loc.title.includes(q);
+  });
+
   const toggleAll = () => {
-    if (selectedIds.size === locations.length) {
-      setSelectedIds(new Set());
+    const visibleIds = visibleLocations.map(loc => loc.id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+    
+    const next = new Set(selectedIds);
+    if (allVisibleSelected) {
+      visibleIds.forEach(id => next.delete(id));
     } else {
-      setSelectedIds(new Set(locations.map(loc => loc.id)));
+      visibleIds.forEach(id => next.add(id));
     }
+    setSelectedIds(next);
   };
 
   const handlePrint = () => {
@@ -89,14 +101,6 @@ export default function PrintLocations() {
 
   const getPaddedCode = (code) => {
     const maxLen = locationLevels.length;
-    // We assume the location code is exactly its depth in length since levels alternate letters/numbers
-    // Wait, some locations might have longer tokens. Let's pad based on the difference.
-    // If we count tokens (letters/numbers), we could know depth. 
-    // The easiest way to know depth is `level`.
-    // The user requested: "اگر سطوح ۵ داریم خروجی میگیریم : A5F6Cx"
-    // So if max levels is e.g. 6, and current level is 4 (e.g. length is 4 tokens), we pad 2 'x's.
-    // Assuming each token is 1 character, code.length is the level. If tokens are longer, we must parse them.
-    // Let's parse tokens using regex: /[a-zA-Z]+|[0-9]+/g
     const tokens = code.match(/[a-zA-Z]+|[0-9]+/g) || [];
     const missing = maxLen - tokens.length;
     if (missing > 0) {
@@ -175,17 +179,27 @@ export default function PrintLocations() {
                   لیست آدرس‌ها
                   <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md text-xs">{locations.length}</span>
                 </h3>
-                <button 
-                  onClick={toggleAll}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                >
-                  {selectedIds.size === locations.length ? <CheckSquare size={16} /> : <Square size={16} />}
-                  {selectedIds.size === locations.length ? 'لغو انتخاب همه' : 'انتخاب همه'}
-                </button>
+                <div className="flex items-center gap-4">
+                  <input 
+                    type="text"
+                    dir="ltr"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="فیلتر کد (مثال: A5)"
+                    className="border border-gray-200 bg-gray-50 px-3 py-1.5 rounded-lg text-sm text-gray-800 font-bold focus:outline-none focus:border-indigo-500"
+                  />
+                  <button 
+                    onClick={toggleAll}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                  >
+                    {visibleLocations.length > 0 && visibleLocations.every(loc => selectedIds.has(loc.id)) ? <CheckSquare size={16} /> : <Square size={16} />}
+                    {visibleLocations.length > 0 && visibleLocations.every(loc => selectedIds.has(loc.id)) ? 'لغو انتخاب' : 'انتخاب همه'}
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                {locations.map(loc => {
+                {visibleLocations.map(loc => {
                   const isSelected = selectedIds.has(loc.id);
                   return (
                     <div 
