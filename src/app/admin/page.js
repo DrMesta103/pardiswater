@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Layers, Users, BarChart3, Settings, AlertTriangle, UserCog, Activity, Box, Map, LayoutGrid, AlertCircle, Info, Shield, Lock } from 'lucide-react';
+import { Layers, Users, BarChart3, Settings, AlertTriangle, UserCog, Activity, Box, Map, LayoutGrid, AlertCircle, Info, Shield, Lock, Calendar } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -149,6 +149,13 @@ export default function AdminDashboard() {
                 <Users strokeWidth={2} size={24} />
               </div>
               <span className="font-extrabold text-xs text-center text-gray-700">کاربران</span>
+            </AdminLink>
+
+            <AdminLink id="periods" href="/admin/periods">
+              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                <Calendar strokeWidth={2} size={24} />
+              </div>
+              <span className="font-extrabold text-xs text-center text-gray-700">دوره‌های انبارگردانی</span>
             </AdminLink>
 
             <AdminLink id="tasks" href="/admin/tasks">

@@ -43,20 +43,42 @@ export async function GET(req) {
     while (currentTasks.length < 1) {
       let newTaskAdded = false;
 
-      // 1. Try to get from pool
-      const pooledTask = await prisma.task.findFirst({
+      // 1. Try to get from open pooled tasks (ordered by period priority)
+      const rotationCycles = settings.shelf_assignment_rotation_cycles !== undefined ? settings.shelf_assignment_rotation_cycles : 2;
+      const numericUserId = parseInt(userId, 10);
+
+      const openPooledTasks = await prisma.task.findMany({
         where: {
           assignedTo: null,
           status: 'OPEN',
           type: { in: ['SYSTEM_LOCATION', 'SYSTEM_ITEM'] }
         },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { id: 'asc' },
+        take: 50
       });
 
-      if (pooledTask) {
+      let chosenTask = null;
+      for (const task of openPooledTasks) {
+        if (rotationCycles > 0 && task.type === 'SYSTEM_LOCATION') {
+          const previousCounts = await prisma.counting.findMany({
+            where: { shelfCode: task.targetId },
+            orderBy: { createdAt: 'desc' },
+            take: rotationCycles,
+            select: { user_id: true }
+          });
+          const previousUserIds = previousCounts.map(c => c.user_id);
+          if (previousUserIds.includes(numericUserId)) {
+            continue; // Skip this shelf for this user to enforce rotation
+          }
+        }
+        chosenTask = task;
+        break;
+      }
+
+      if (chosenTask) {
         const assignedPooledTask = await prisma.task.update({
-          where: { id: pooledTask.id },
-          data: { assignedTo: parseInt(userId, 10) }
+          where: { id: chosenTask.id },
+          data: { assignedTo: numericUserId }
         });
         currentTasks.push(assignedPooledTask);
         newTaskAdded = true;

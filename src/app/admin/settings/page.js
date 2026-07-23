@@ -179,32 +179,6 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Show Suggested Shelves Setting */}
-          <div className="flex items-start justify-between gap-4 border-b border-gray-50 pb-8">
-            <div className="flex-1 pr-2">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                  <AlertCircle size={16} strokeWidth={2.5} />
-                </div>
-                <h2 className="text-sm font-bold text-gray-800">پیشنهاد قفسه‌های شمارش‌نشده</h2>
-              </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                در صورت فعال بودن، در صفحه داشبورد لیستی از قفسه‌هایی که مدتی شمارش نشده‌اند به کاربر پیشنهاد داده می‌شود.
-              </p>
-            </div>
-            
-            <button 
-              onClick={() => setSettings(s => ({ ...s, show_suggested_shelves: s.show_suggested_shelves === undefined ? false : !s.show_suggested_shelves }))}
-              className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${(settings.show_suggested_shelves ?? true) ? 'bg-emerald-600' : 'bg-gray-200'}`}
-              role="switch"
-              aria-checked={settings.show_suggested_shelves ?? true}
-            >
-              <span 
-                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${(settings.show_suggested_shelves ?? true) ? '-translate-x-6' : 'translate-x-0'}`} 
-              />
-            </button>
-          </div>
-
           {/* Enable Counting Modes */}
           <div className="border-t border-gray-50 pt-8 flex flex-col gap-5">
             <div className="flex items-center gap-2 mb-1">
@@ -338,31 +312,6 @@ export default function SettingsPage() {
                   </motion.button>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Uncounted Shelves Warning Days */}
-          <div className="border-t border-gray-50 pt-8">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-[12px] bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
-                <AlertCircle size={16} strokeWidth={2.5} />
-              </div>
-              <h2 className="text-sm font-bold text-gray-800">هشدار قفسه‌های شمارش‌نشده</h2>
-            </div>
-            <p className="text-xs text-gray-500 leading-relaxed mb-4">
-              قفسه‌هایی که بیشتر از این تعداد روز از آخرین انبارگردانی‌شان گذشته باشد، در صفحه اصلی برای شمارش مجدد پیشنهاد می‌شوند.
-            </p>
-            
-            <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-[16px] border border-gray-100">
-              <input 
-                type="number" 
-                min="1"
-                max="365"
-                value={settings.uncounted_shelf_days || 10}
-                onChange={e => setSettings(s => ({ ...s, uncounted_shelf_days: Number(e.target.value) }))}
-                className="w-20 bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-center font-black text-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-              <span className="text-sm font-bold text-gray-600">روز</span>
             </div>
           </div>
 

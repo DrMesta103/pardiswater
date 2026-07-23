@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { 
   Users, Check, XCircle, Search, ShieldAlert, BarChart2, UserPlus, X, 
-  Edit3, Trash2, Key, Power, UserCheck, UserX, AlertTriangle, RefreshCw, Eye, EyeOff
+  Edit3, Trash2, Key, Power, UserCheck, UserX, AlertTriangle, RefreshCw, Eye, EyeOff, MoreVertical 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -14,6 +14,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(null); // id of user being updated
   const [toast, setToast] = useState({ show: false, message: '', isError: false });
+  const [openMenuId, setOpenMenuId] = useState(null);
   
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -363,8 +364,8 @@ export default function UsersPage() {
             return (
               <div 
                 key={user.id} 
-                className={`bg-white border rounded-[24px] p-5 shadow-sm flex flex-col gap-4 transition-all ${
-                  !isUserActive ? 'border-amber-200 bg-amber-50/20 opacity-80' : 'border-gray-100'
+                className={`bg-white border rounded-[24px] p-5 shadow-sm flex flex-col gap-4 transition-all relative ${
+                  !isUserActive ? 'border-amber-200 bg-amber-50/20 opacity-80' : 'border-gray-100 hover:border-indigo-100'
                 }`}
               >
                 {/* User Header */}
@@ -397,71 +398,80 @@ export default function UsersPage() {
                     </div>
                   </div>
                   
-                  <Link 
-                    href={`/admin/users/${user.id}`}
-                    className="bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 px-3 py-2 rounded-[12px] text-xs font-bold transition-colors flex items-center gap-1.5 border border-gray-200"
-                    title="مشاهده کارنامه عملکرد"
-                  >
-                    <BarChart2 size={14} />
-                    کارنامه
-                  </Link>
-                </div>
+                  {/* Three-dots Actions Menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
+                      className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                      title="عملیات کاربر"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
 
-                {/* Quick Management Toolbar */}
-                <div className="flex flex-wrap items-center gap-2 bg-gray-50/80 p-2 rounded-[16px] border border-gray-100">
-                  {/* Edit User Button */}
-                  <button
-                    onClick={() => openEditModal(user)}
-                    className="flex-1 py-2 px-3 bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                    title="ویرایش مشخصات"
-                  >
-                    <Edit3 size={14} className="text-indigo-500" />
-                    ویرایش
-                  </button>
+                    <AnimatePresence>
+                      {openMenuId === user.id && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="absolute left-0 top-12 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 w-52 flex flex-col gap-1 text-xs font-bold text-gray-700"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => { openEditModal(user); setOpenMenuId(null); }}
+                            className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2 transition-colors"
+                          >
+                            <Edit3 size={14} className="text-indigo-500" />
+                            <span>ویرایش مشخصات</span>
+                          </button>
 
-                  {/* Change Password Button */}
-                  <button
-                    onClick={() => openPasswordModal(user)}
-                    className="flex-1 py-2 px-3 bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                    title="تغییر رمز عبور"
-                  >
-                    <Key size={14} className="text-amber-500" />
-                    تغییر رمز
-                  </button>
+                          <button
+                            onClick={() => { openPasswordModal(user); setOpenMenuId(null); }}
+                            className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-amber-50 hover:text-amber-600 flex items-center gap-2 transition-colors"
+                          >
+                            <Key size={14} className="text-amber-500" />
+                            <span>تغییر رمز عبور</span>
+                          </button>
 
-                  {/* Active Toggle Button */}
-                  <button
-                    onClick={() => handleToggleActive(user)}
-                    disabled={saving === user.id}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all border shadow-xs ${
-                      isUserActive
-                        ? 'bg-white text-amber-700 hover:bg-amber-50 border-amber-200'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600'
-                    } ${saving === user.id ? 'opacity-50 cursor-wait' : ''}`}
-                    title={isUserActive ? 'غیرفعال کردن کاربر' : 'فعال کردن کاربر'}
-                  >
-                    {isUserActive ? (
-                      <>
-                        <UserX size={14} className="text-amber-600" />
-                        غیرفعال‌سازی
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck size={14} className="text-white" />
-                        فعال‌سازی
-                      </>
-                    )}
-                  </button>
+                          <button
+                            onClick={() => { handleToggleActive(user); setOpenMenuId(null); }}
+                            className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 flex items-center gap-2 transition-colors"
+                          >
+                            {isUserActive ? (
+                              <>
+                                <UserX size={14} className="text-amber-600" />
+                                <span>غیرفعال‌سازی حساب</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck size={14} className="text-emerald-600" />
+                                <span>فعال‌سازی حساب</span>
+                              </>
+                            )}
+                          </button>
 
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => openDeleteModal(user)}
-                    className="py-2 px-3 bg-white text-red-600 hover:bg-red-50 border border-red-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                    title="حذف کاربر"
-                  >
-                    <Trash2 size={14} />
-                    حذف
-                  </button>
+                          <Link
+                            href={`/admin/users/${user.id}`}
+                            onClick={() => setOpenMenuId(null)}
+                            className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-purple-50 hover:text-purple-600 flex items-center gap-2 transition-colors"
+                          >
+                            <BarChart2 size={14} className="text-purple-500" />
+                            <span>مشاهده کارنامه عملکرد</span>
+                          </Link>
+
+                          <div className="h-px bg-gray-100 my-0.5"></div>
+
+                          <button
+                            onClick={() => { openDeleteModal(user); setOpenMenuId(null); }}
+                            className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            <span>حذف کاربر</span>
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 {/* Roles Assignment */}
@@ -492,17 +502,17 @@ export default function UsersPage() {
                   </div>
                 </div>
                 
-                {/* Data Records Summary */}
+                {/* Data Records Summary Footer */}
                 <div className="bg-gray-50 rounded-[14px] p-3 flex justify-between items-center text-xs">
-                  <span className="text-gray-500 font-medium">مجموع داده‌ها و سوابق ثبت‌شده:</span>
+                  <span className="text-gray-500 font-bold">داده ثبت شده :</span>
                   <div className="flex items-center gap-2">
                     {totalRecords > 0 ? (
-                      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-black text-xs border border-indigo-100">
-                        {totalRecords} رکورد (دارای داده)
+                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-black text-xs border border-indigo-100">
+                        {totalRecords} رکورد
                       </span>
                     ) : (
-                      <span className="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-lg font-bold text-xs">
-                        بدون داده (قابل حذف)
+                      <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg font-bold text-xs">
+                        بدون داده
                       </span>
                     )}
                   </div>
