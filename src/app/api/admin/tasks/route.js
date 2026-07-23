@@ -7,7 +7,8 @@ export async function GET(req) {
       orderBy: { updatedAt: 'desc' },
       include: {
         assignee: { select: { id: true, name: true, username: true } },
-        creator: { select: { id: true, name: true, username: true } }
+        creator: { select: { id: true, name: true, username: true } },
+        period: { select: { title: true } }
       }
     });
 

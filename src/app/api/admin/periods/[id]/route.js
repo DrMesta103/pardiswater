@@ -126,11 +126,35 @@ export async function DELETE(req, { params }) {
     const { id } = await params;
     const periodId = Number(id);
 
+    // 1. Fetch period with countings
+    const period = await prisma.countingPeriod.findUnique({
+      where: { id: periodId },
+      include: { countings: { take: 1 } }
+    });
+
+    if (!period) {
+      return NextResponse.json({ error: 'دوره یافت نشد' }, { status: 404 });
+    }
+
+    // 2. Prevent deletion if there is counting data
+    if (period.countings && period.countings.length > 0) {
+      return NextResponse.json(
+        { error: 'امکان حذف دوره‌ای که دارای دیتای شمارش ثبت‌شده است وجود ندارد. لطفاً دوره را خاتمه دهید (بستن دوره).' }, 
+        { status: 400 }
+      );
+    }
+
+    // 3. Cascade Delete: Delete all tasks generated for this period first
+    await prisma.task.deleteMany({
+      where: { periodId: periodId }
+    });
+
+    // 4. Delete the period itself
     await prisma.countingPeriod.delete({
       where: { id: periodId }
     });
 
-    return NextResponse.json({ success: true, message: 'دوره انبارگردانی با موفقیت حذف شد' });
+    return NextResponse.json({ success: true, message: 'دوره انبارگردانی و تمامی تسک‌های مرتبط با موفقیت حذف شدند' });
   } catch (error) {
     console.error('Error deleting period:', error);
     return NextResponse.json({ error: 'خطا در حذف دوره' }, { status: 500 });
