@@ -16,18 +16,28 @@ export async function GET(req) {
         const loc = await prisma.location.findUnique({
           where: { code: task.targetId },
           include: { 
-            parent: { include: { parent: { include: { parent: true } } } }
+            parent: { 
+              include: { 
+                parent: { 
+                  include: { 
+                    parent: { 
+                      include: { parent: true } 
+                    } 
+                  } 
+                } 
+              } 
+            }
           }
         });
         if (loc) {
-          let pathParts = [loc.title || loc.code];
+          let pathParts = [`${loc.type || ''} ${loc.title || loc.code}`.trim()];
           let current = loc.parent;
           while (current) {
-            pathParts.unshift(current.title || current.code);
+            pathParts.unshift(`${current.type || ''} ${current.title || current.code}`.trim());
             current = current.parent;
           }
           if (loc.warehouse) pathParts.unshift(`انبار ${loc.warehouse}`);
-          return { ...task, fullPath: pathParts.join(' / ') };
+          return { ...task, fullPath: pathParts.join(' ➔ ') };
         }
       }
       return task;

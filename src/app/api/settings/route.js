@@ -16,6 +16,9 @@ export async function GET() {
     if (settingsMap['correction_roles'] === undefined) {
       settingsMap['correction_roles'] = ['ADMIN', 'SUPERVISOR'];
     }
+    if (settingsMap['shelf_assignment_rotation_cycles'] === undefined) {
+      settingsMap['shelf_assignment_rotation_cycles'] = 2;
+    }
     if (settingsMap['warehouses'] === undefined) {
       settingsMap['warehouses'] = [
         { id: '11', name: 'انبار مرکزی' },

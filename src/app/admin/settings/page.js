@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Save, EyeOff, ShieldCheck, Check, AlertCircle, XCircle, Layers, Trash2, Plus } from 'lucide-react';
+import { Save, EyeOff, ShieldCheck, Check, AlertCircle, XCircle, Layers, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SettingsPage() {
@@ -9,6 +9,7 @@ export default function SettingsPage() {
     blind_counting: false,
     correction_roles: ['ADMIN', 'SUPERVISOR'],
     uncounted_shelf_days: 10,
+    shelf_assignment_rotation_cycles: 2,
     location_levels: [
       { name: 'طبقه', format: 'UPPERCASE' },
       { name: 'اتاق', format: 'NUMBER' },
@@ -276,6 +277,31 @@ export default function SettingsPage() {
               >
                 <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ${settings.task_mode_item ? '-translate-x-6' : 'translate-x-0'}`} />
               </button>
+            </div>
+          </div>
+
+          {/* Rotation Cycles Setting */}
+          <div className="border-t border-gray-50 pt-8">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-[12px] bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                <RotateCcw size={16} strokeWidth={2.5} />
+              </div>
+              <h2 className="text-sm font-bold text-gray-800">چرخش انبارگردان قفسه‌ها (عدم تخصیص تکراری به یک فرد)</h2>
+            </div>
+            <p className="text-xs text-gray-500 leading-relaxed mb-4">
+              تعداد دوره‌هایی که یک قفسه نباید دوباره به انبارگردان قبلی‌اش محول شود تا سیستم تسک آن را به فرد دیگری ارجاع دهد.
+            </p>
+            
+            <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-[16px] border border-gray-100">
+              <input 
+                type="number" 
+                min="0"
+                max="10"
+                value={settings.shelf_assignment_rotation_cycles ?? 2}
+                onChange={e => setSettings(s => ({ ...s, shelf_assignment_rotation_cycles: Math.max(0, Number(e.target.value)) }))}
+                className="w-20 bg-white border border-gray-200 rounded-[12px] px-3 py-2 text-center font-black text-gray-800 focus:outline-none focus:border-teal-500 transition-colors"
+              />
+              <span className="text-sm font-bold text-gray-600">دوره عدم تخصیص مجدد به یک نفر</span>
             </div>
           </div>
 

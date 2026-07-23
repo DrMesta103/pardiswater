@@ -62,18 +62,21 @@ export async function GET(req) {
         newTaskAdded = true;
       }
 
-      // 2. If no pooled task, try to generate location task
+      // 2. If no pooled task, try to generate location task using Leaf Nodes & Rotation Cycles
       if (!newTaskAdded && taskModeLocation) {
+        // Query leaf locations (locations with no children)
         const locations = await prisma.location.findMany({
-          where: { level: 2 },
+          where: { children: { none: {} } },
           orderBy: { createdAt: 'asc' }
         });
         
-        for (const loc of locations) {
-          const daysAgo = settings.uncounted_shelf_days || 10;
-          const dateThreshold = new Date();
-          dateThreshold.setDate(dateThreshold.getDate() - daysAgo);
+        const rotationCycles = settings.shelf_assignment_rotation_cycles !== undefined ? settings.shelf_assignment_rotation_cycles : 2;
+        const daysAgo = settings.uncounted_shelf_days || 10;
+        const dateThreshold = new Date();
+        dateThreshold.setDate(dateThreshold.getDate() - daysAgo);
+        const numericUserId = parseInt(userId, 10);
 
+        for (const loc of locations) {
           const lastCount = await prisma.counting.findFirst({
             where: { shelfCode: loc.code },
             orderBy: { createdAt: 'desc' }
@@ -83,13 +86,27 @@ export async function GET(req) {
             where: { targetId: loc.code, status: { in: ['OPEN', 'IN_PROGRESS'] } }
           });
 
+          // Check rotation cycles: Has this user counted this shelf in the last N cycles?
+          if (rotationCycles > 0) {
+            const previousCounts = await prisma.counting.findMany({
+              where: { shelfCode: loc.code },
+              orderBy: { createdAt: 'desc' },
+              take: rotationCycles,
+              select: { user_id: true }
+            });
+            const previousUserIds = previousCounts.map(c => c.user_id);
+            if (previousUserIds.includes(numericUserId)) {
+              continue; // Skip this shelf for this user to enforce rotation
+            }
+          }
+
           if (!activeTask && (!lastCount || lastCount.createdAt < dateThreshold)) {
             const newTask = await prisma.task.create({
               data: {
                 type: 'SYSTEM_LOCATION',
                 targetId: loc.code,
                 targetName: loc.title || loc.code,
-                assignedTo: parseInt(userId, 10),
+                assignedTo: numericUserId,
                 createdBy: 1,
                 status: 'OPEN'
               }
